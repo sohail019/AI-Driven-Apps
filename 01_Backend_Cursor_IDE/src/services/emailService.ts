@@ -4,15 +4,35 @@ class EmailService {
   private transporter: nodemailer.Transporter;
 
   constructor() {
-    // For development, you can use a test email service like Mailtrap
-    // For production, use your actual SMTP settings
+    const user = process.env.SMTP_USER || "shaikhhsohail0193@gmail.com";
+    const pass = process.env.SMTP_PASS || "jbmhhfvonqezhrlv";
+
+    if (!user || !pass) {
+      console.error("Email credentials are missing!");
+      console.log("SMTP_USER:", user);
+      console.log("SMTP_PASS exists:", !!pass);
+    }
+
     this.transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || "live.smtp.mailtrap.io",
-      port: parseInt(process.env.SMTP_PORT || "2525"),
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
       auth: {
-        user: process.env.SMTP_USER || "smtp@mailtrap.io",
-        pass: process.env.SMTP_PASS || "d5bda77730fecdff906dc0d0ef3cf2ba",
+        user: user,
+        pass: pass,
       },
+      tls: {
+        rejectUnauthorized: false,
+      },
+    });
+
+    // Verify connection configuration
+    this.transporter.verify((error, success) => {
+      if (error) {
+        console.error("SMTP connection error:", error);
+      } else {
+        console.log("SMTP server is ready to send emails");
+      }
     });
   }
 
@@ -22,7 +42,7 @@ class EmailService {
     }/api/auth/verify-email/${token}`;
 
     const mailOptions = {
-      from: process.env.EMAIL_FROM || "noreply@boipoka.com",
+      from: process.env.EMAIL_FROM || "shaikhhsohail0193@gmail.com",
       to,
       subject: "Email Verification - Library Management System",
       html: `
@@ -57,7 +77,7 @@ class EmailService {
     }/api/auth/reset-password/${token}`;
 
     const mailOptions = {
-      from: process.env.EMAIL_FROM || "noreply@boipoka.com",
+      from: process.env.EMAIL_FROM || "shaikhhsohail0193@gmail.com",
       to,
       subject: "Password Reset - Library Management System",
       html: `

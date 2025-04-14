@@ -1,98 +1,141 @@
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import User, { IUser } from "../models/User";
+import { IUser } from "../models/User";
+import User from "../models/User";
 import emailService from "./emailService";
+import {
+  IRegisterRequest,
+  ILoginRequest,
+  IAuthResponse,
+} from "../types/auth.types";
+import { AppError } from "../utils/AppError";
 
 class AuthService {
-  async register(userData: {
-    username: string;
-    email: string;
-    password: string;
-  }): Promise<{ user: IUser; token: string; verificationToken: string }> {
-    // Check if user already exists
-    const existingUser = await User.findOne({
-      $or: [{ email: userData.email }, { username: userData.username }],
-    });
-
-    if (existingUser) {
-      throw new Error("User with this email or username already exists");
-    }
-
-    // Generate verification token
-    const verificationToken = crypto.randomBytes(32).toString("hex");
-    const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-
-    // Create new user
-    const user = new User({
-      ...userData,
-      verificationToken,
-      verificationTokenExpiry,
-    });
-    await user.save();
-
-    // Send verification email
+  /**
+   * Register a new user
+   * @param userData - User registration data
+   * @returns Object containing user data, JWT token, and verification token
+   * @throws AppError if registration fails
+   */
+  async register(userData: IRegisterRequest): Promise<IAuthResponse> {
     try {
-      await emailService.sendVerificationEmail(user.email, verificationToken);
+      // Check if user already exists
+      const existingUser = await User.findOne({
+        $or: [{ email: userData.email }, { username: userData.username }],
+      });
+
+      if (existingUser) {
+        throw new AppError(
+          "User with this email or username already exists",
+          400
+        );
+      }
+
+      // Generate verification token
+      const verificationToken = crypto.randomBytes(32).toString("hex");
+      const verificationTokenExpiry = new Date(
+        Date.now() + 24 * 60 * 60 * 1000
+      ); // 24 hours
+
+      // Create new user
+      const user = new User({
+        ...userData,
+        verificationToken,
+        verificationTokenExpiry,
+      });
+      await user.save();
+
+      // Send verification email
+      try {
+        await emailService.sendVerificationEmail(user.email, verificationToken);
+      } catch (error) {
+        // If email fails, delete the user and throw error
+        await User.findByIdAndDelete(user._id);
+        throw new AppError(
+          "Failed to send verification email. Please try again.",
+          500
+        );
+      }
+
+      // Generate tokens
+      const token = this.generateToken(user);
+      const refreshToken = this.generateRefreshToken(user);
+
+      // Save refresh token
+      user.refreshToken = refreshToken;
+      await user.save();
+
+      // Prepare response
+      const response: IAuthResponse = {
+        user: {
+          id: user._id.toString(),
+          username: user.username,
+          email: user.email,
+          isVerified: user.isVerified,
+          createdAt: user.createdAt,
+        },
+        token,
+        refreshToken,
+      };
+
+      return response;
     } catch (error) {
-      // If email fails, we might want to delete the user or handle it differently
-      await User.findByIdAndDelete(user._id);
-      throw new Error("Failed to send verification email. Please try again.");
+      if (error instanceof AppError) throw error;
+      throw new AppError("Registration failed", 500);
     }
-
-    // Generate JWT token
-    const token = this.generateToken(user);
-    // Generate refresh token
-    const refreshToken = this.generateRefreshToken(user);
-
-    // Save refresh token to user
-    user.refreshToken = refreshToken;
-    await user.save();
-
-    // Remove sensitive data from response
-    const userResponse = user.toObject();
-    // delete userResponse.password;
-    // delete userResponse.verificationToken;
-    // delete userResponse.verificationTokenExpiry;
-
-    return { user: userResponse, token, verificationToken };
   }
 
-  async login(credentials: {
-    email: string;
-    password: string;
-  }): Promise<{ user: IUser; token: string; refreshToken: string }> {
-    // Find user by email
-    const user = await User.findOne({ email: credentials.email });
-    if (!user) {
-      throw new Error("Invalid credentials");
+  /**
+   * Login user
+   * @param credentials - Login credentials
+   * @returns Object containing user data and JWT tokens
+   * @throws AppError if login fails
+   */
+  async login(credentials: ILoginRequest): Promise<IAuthResponse> {
+    try {
+      // Find user by email
+      const user = await User.findOne({ email: credentials.email });
+      if (!user) {
+        throw new AppError("Invalid credentials", 401);
+      }
+
+      // Verify password
+      const isPasswordValid = await user.comparePassword(credentials.password);
+      if (!isPasswordValid) {
+        throw new AppError("Invalid credentials", 401);
+      }
+
+      // Check email verification
+      if (!user.isVerified) {
+        throw new AppError("Please verify your email first", 403);
+      }
+
+      // Generate tokens
+      const token = this.generateToken(user);
+      const refreshToken = this.generateRefreshToken(user);
+
+      // Save refresh token
+      user.refreshToken = refreshToken;
+      await user.save();
+
+      // Prepare response
+      const response: IAuthResponse = {
+        user: {
+          id: user._id.toString(),
+          username: user.username,
+          email: user.email,
+          isVerified: user.isVerified,
+          createdAt: user.createdAt,
+        },
+        token,
+        refreshToken,
+      };
+
+      return response;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError("Login failed", 500);
     }
-
-    // Check password
-    const isPasswordValid = await user.comparePassword(credentials.password);
-    if (!isPasswordValid) {
-      throw new Error("Invalid credentials");
-    }
-
-    // Check if email is verified
-    if (!user.isVerified) {
-      throw new Error("Please verify your email first");
-    }
-
-    // Generate tokens
-    const token = this.generateToken(user);
-    const refreshToken = this.generateRefreshToken(user);
-
-    // Save refresh token
-    user.refreshToken = refreshToken;
-    await user.save();
-
-    // Remove sensitive data from response
-    const userResponse = user.toObject();
-    // delete userResponse.password;
-    // delete userResponse.verificationToken;
-    // delete userResponse.verificationTokenExpiry;
-
-    return { user: userResponse, token, refreshToken };
   }
 
   async verifyEmail(token: string): Promise<void> {
@@ -159,6 +202,11 @@ class AuthService {
     await User.findByIdAndUpdate(userId, { refreshToken: null });
   }
 
+  /**
+   * Generate JWT token
+   * @param user - User object
+   * @returns JWT token
+   */
   private generateToken(user: IUser): string {
     return jwt.sign(
       { userId: user._id },
@@ -167,6 +215,11 @@ class AuthService {
     );
   }
 
+  /**
+   * Generate refresh token
+   * @param user - User object
+   * @returns Refresh token
+   */
   private generateRefreshToken(user: IUser): string {
     return jwt.sign(
       { userId: user._id },

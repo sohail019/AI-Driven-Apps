@@ -1,84 +1,118 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import authService from "../services/authService";
+import { AppError } from "../utils/AppError";
+import { IRegisterRequest, ILoginRequest } from "../types/auth.types";
 
-export const register = async (req: Request, res: Response) => {
+/**
+ * Register a new user
+ * @route POST /api/auth/register
+ */
+export const register = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const { user, token, verificationToken } = await authService.register(
-      req.body
-    );
+    const userData: IRegisterRequest = req.body;
+    const { user, token, refreshToken } = await authService.register(userData);
 
-    // In a real application, you would send an email with the verification link
-    // For testing purposes, we'll return the verification token in the response
     res.status(201).json({
+      status: "success",
       message:
         "User registered successfully. Please check your email for verification.",
-      user,
-      token,
-      verificationToken, // Remove this in production
+      data: { user, token, refreshToken },
     });
-  } catch (error: any) {
-    res.status(400).json({
-      message: error.message || "Error registering user",
-    });
+  } catch (error) {
+    next(error);
   }
 };
 
-export const login = async (req: Request, res: Response) => {
+/**
+ * Login user
+ * @route POST /api/auth/login
+ */
+export const login = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const { user, token, refreshToken } = await authService.login(req.body);
-    res.json({
-      message: "Login successful",
-      user,
-      token,
-      refreshToken,
+    const credentials: ILoginRequest = req.body;
+    const { user, token, refreshToken } = await authService.login(credentials);
+
+    res.status(200).json({
+      status: "success",
+      data: { user, token, refreshToken },
     });
-  } catch (error: any) {
-    res.status(401).json({
-      message: error.message || "Invalid credentials",
-    });
+  } catch (error) {
+    next(error);
   }
 };
 
-export const verifyEmail = async (req: Request, res: Response) => {
+/**
+ * Verify email
+ * @route GET /api/auth/verify-email/:token
+ */
+export const verifyEmail = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { token } = req.params;
     await authService.verifyEmail(token);
-    res.json({ message: "Email verified successfully" });
-  } catch (error: any) {
-    res.status(400).json({
-      message: error.message || "Error verifying email",
+
+    res.status(200).json({
+      status: "success",
+      message: "Email verified successfully",
     });
+  } catch (error) {
+    next(error);
   }
 };
 
-export const forgotPassword = async (req: Request, res: Response) => {
+/**
+ * Request password reset
+ * @route POST /api/auth/forgot-password
+ */
+export const forgotPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { email } = req.body;
-    const resetToken = await authService.forgotPassword(email);
+    await authService.forgotPassword(email);
 
-    // In a real application, you would send an email with the reset link
-    // For testing purposes, we'll return the reset token in the response
-    res.json({
+    res.status(200).json({
+      status: "success",
       message: "Password reset instructions sent to your email",
-      resetToken, // Remove this in production
     });
-  } catch (error: any) {
-    res.status(400).json({
-      message: error.message || "Error processing forgot password request",
-    });
+  } catch (error) {
+    next(error);
   }
 };
 
-export const resetPassword = async (req: Request, res: Response) => {
+/**
+ * Reset password
+ * @route POST /api/auth/reset-password/:token
+ */
+export const resetPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { token } = req.params;
-    const { password } = req.body;
-    await authService.resetPassword(token, password);
-    res.json({ message: "Password reset successful" });
-  } catch (error: any) {
-    res.status(400).json({
-      message: error.message || "Error resetting password",
+    const { newPassword } = req.body;
+    await authService.resetPassword(token, newPassword);
+
+    res.status(200).json({
+      status: "success",
+      message: "Password reset successful",
     });
+  } catch (error) {
+    next(error);
   }
 };
 
