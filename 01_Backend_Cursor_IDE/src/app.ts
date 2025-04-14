@@ -4,6 +4,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import bookRoutes from "./routes/bookRoutes";
 import authRoutes from "./routes/authRoutes";
+import libraryRoutes from "./routes/libraryRoutes";
 
 const app: Express = express();
 
@@ -17,6 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/books", bookRoutes);
+app.use("/api/libraries", libraryRoutes);
 
 // Welcome route
 app.get("/", (req: Request, res: Response) => {

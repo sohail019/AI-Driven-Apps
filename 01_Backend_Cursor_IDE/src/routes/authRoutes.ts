@@ -7,6 +7,12 @@ import {
   resetPassword,
   logout,
 } from "../controllers/authController";
+import {
+  googleAuth,
+  googleAuthCallback,
+  googleAuthSuccess,
+  updateSocialAuthMobile,
+} from "../controllers/socialAuthController";
 import { validateRequest } from "../middlewares/validateRequest";
 import {
   registerSchema,
@@ -45,5 +51,10 @@ router.post(
   refreshAccessToken
 );
 router.post("/logout", protect, logout);
+
+// Social auth routes
+router.get("/google", googleAuth);
+router.get("/google/callback", googleAuthCallback, googleAuthSuccess);
+router.post("/social/mobile", updateSocialAuthMobile);
 
 export default router;

@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { AppError } from "../utils/AppError";
 
 class EmailService {
   private transporter: nodemailer.Transporter;
@@ -8,21 +9,14 @@ class EmailService {
     const pass = process.env.SMTP_PASS || "jbmhhfvonqezhrlv";
 
     if (!user || !pass) {
-      console.error("Email credentials are missing!");
-      console.log("SMTP_USER:", user);
-      console.log("SMTP_PASS exists:", !!pass);
+      throw new AppError("Email credentials are missing", 500);
     }
 
     this.transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false,
+      service: "gmail",
       auth: {
-        user: user,
-        pass: pass,
-      },
-      tls: {
-        rejectUnauthorized: false,
+        user,
+        pass,
       },
     });
 
@@ -30,19 +24,17 @@ class EmailService {
     this.transporter.verify((error, success) => {
       if (error) {
         console.error("SMTP connection error:", error);
-      } else {
-        console.log("SMTP server is ready to send emails");
+        throw new AppError("Failed to connect to email server", 500);
       }
+      console.log("SMTP server is ready to send emails");
     });
   }
 
   async sendVerificationEmail(to: string, token: string): Promise<void> {
-    const verificationUrl = `${
-      process.env.APP_URL || "http://localhost:3000"
-    }/api/auth/verify-email/${token}`;
+    const verificationUrl = `${process.env.APP_URL}/api/auth/verify-email/${token}`;
 
     const mailOptions = {
-      from: process.env.EMAIL_FROM || "shaikhhsohail0193@gmail.com",
+      from: process.env.EMAIL_FROM,
       to,
       subject: "Email Verification - Library Management System",
       html: `
@@ -65,9 +57,10 @@ class EmailService {
 
     try {
       await this.transporter.sendMail(mailOptions);
+      console.log(`Verification email sent to ${to}`);
     } catch (error) {
       console.error("Error sending verification email:", error);
-      throw new Error("Failed to send verification email");
+      throw new AppError("Failed to send verification email", 500);
     }
   }
 

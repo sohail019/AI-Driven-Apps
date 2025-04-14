@@ -1,16 +1,19 @@
 import mongoose, { Document, Schema } from "mongoose";
 import bcrypt from "bcryptjs";
+import { v4 as uuidv4 } from "uuid";
 
 export interface IUser extends Document {
+  id: string; // UUID
   username: string;
   email: string;
+  mobile: string;
   password: string;
   isVerified: boolean;
-  verificationToken: string | null;
-  verificationTokenExpiry: Date | null;
-  resetPasswordToken: string | null;
-  resetPasswordTokenExpiry: Date | null;
-  refreshToken: string | null;
+  verificationToken?: string;
+  verificationTokenExpiry?: Date;
+  resetPasswordToken?: string;
+  resetPasswordTokenExpiry?: Date;
+  refreshToken?: string;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -18,6 +21,12 @@ export interface IUser extends Document {
 
 const userSchema = new Schema<IUser>(
   {
+    id: {
+      type: String,
+      default: uuidv4,
+      unique: true,
+      required: true,
+    },
     username: {
       type: String,
       required: [true, "Username is required"],
@@ -32,6 +41,13 @@ const userSchema = new Schema<IUser>(
       trim: true,
       lowercase: true,
       match: [/^\S+@\S+\.\S+$/, "Please enter a valid email"],
+    },
+    mobile: {
+      type: String,
+      required: [true, "Mobile number is required"],
+      unique: true,
+      trim: true,
+      match: [/^[0-9]{10}$/, "Please enter a valid 10-digit mobile number"],
     },
     password: {
       type: String,
@@ -65,6 +81,19 @@ const userSchema = new Schema<IUser>(
   },
   {
     timestamps: true,
+    toJSON: {
+      transform: function (doc, ret) {
+        ret.id = ret._id;
+        delete ret._id;
+        delete ret.__v;
+        delete ret.password;
+        delete ret.verificationToken;
+        delete ret.verificationTokenExpiry;
+        delete ret.resetPasswordToken;
+        delete ret.resetPasswordTokenExpiry;
+        return ret;
+      },
+    },
   }
 );
 

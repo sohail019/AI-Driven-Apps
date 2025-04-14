@@ -1,3 +1,5 @@
+import { Document } from "mongoose";
+
 /**
  * Interface for registration request data
  */
@@ -5,6 +7,7 @@ export interface IRegisterRequest {
   username: string;
   email: string;
   password: string;
+  mobile: string;
 }
 
 /**
@@ -23,10 +26,10 @@ export interface IAuthResponse {
     id: string;
     username: string;
     email: string;
+    mobile: string;
     isVerified: boolean;
-    createdAt: Date;
   };
-  token: string;
+  accessToken: string;
   refreshToken: string;
 }
 
@@ -49,6 +52,38 @@ export interface IPasswordResetConfirm {
  * Interface for email verification response
  */
 export interface IEmailVerificationResponse {
-  success: boolean;
   message: string;
+  user: {
+    id: string;
+    email: string;
+    isVerified: boolean;
+  };
+}
+
+export interface IUser extends Document {
+  id: string;
+  username: string;
+  email: string;
+  password: string;
+  mobile: string;
+  isVerified: boolean;
+  verificationToken?: string;
+  verificationTokenExpires?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IRefreshTokenRequest {
+  refreshToken: string;
+}
+
+export interface IErrorResponse {
+  status: "error";
+  message: string;
+  errors?: Record<string, string[]>;
+}
+
+export interface ISuccessResponse<T> {
+  status: "success";
+  data: T;
 }

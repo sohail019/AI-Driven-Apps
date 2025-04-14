@@ -1,28 +1,28 @@
 import express from "express";
 import {
-  createBook,
-  getAllBooks,
-  getBookById,
-  updateBook,
-  deleteBook,
+  createBookFromISBN,
+  getBook,
+  searchBooks,
+  addBookToLibrary,
+  getUserBooks,
+  updateUserBookStatus,
+  moveBookToShelf,
+  removeBookFromLibrary,
 } from "../controllers/bookController";
-import { validateRequest } from "../middlewares/validateRequest";
-import {
-  createBookSchema,
-  updateBookSchema,
-  bookIdSchema,
-} from "../validations/bookValidation";
+import { protect } from "../middlewares/authMiddleware";
 
 const router = express.Router();
 
-router.post("/", validateRequest(createBookSchema), createBook);
-router.get("/", getAllBooks);
-router.get("/:id", validateRequest(bookIdSchema), getBookById);
-router.put(
-  "/:id",
-  validateRequest(bookIdSchema.merge(updateBookSchema)),
-  updateBook
-);
-router.delete("/:id", validateRequest(bookIdSchema), deleteBook);
+// Book routes
+router.post("/", protect, createBookFromISBN);
+router.get("/search", searchBooks);
+router.get("/:id", getBook);
+
+// User book routes
+router.post("/library", protect, addBookToLibrary);
+router.get("/library/books", protect, getUserBooks);
+router.patch("/library/books/:id/status", protect, updateUserBookStatus);
+router.patch("/library/books/:id/shelf", protect, moveBookToShelf);
+router.delete("/library/books/:id", protect, removeBookFromLibrary);
 
 export default router;

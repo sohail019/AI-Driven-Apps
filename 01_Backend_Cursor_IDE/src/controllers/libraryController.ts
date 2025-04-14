@@ -1,90 +1,85 @@
 import { Request, Response, NextFunction } from "express";
-import bookService from "../services/bookService";
+import libraryService from "../services/libraryService";
 import { AppError } from "../utils/AppError";
 
-export const createBookFromISBN = async (
+export const createLibrary = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { isbn } = req.body;
-    if (!isbn) {
-      throw new AppError("ISBN is required", 400);
-    }
-    const book = await bookService.createBookFromISBN(isbn);
+    const { name } = req.body;
+    const userId = req.user.id;
+    const library = await libraryService.createLibrary(userId, name);
     res.status(201).json({
       status: "success",
-      data: book,
+      data: library,
     });
   } catch (error) {
     next(error);
   }
 };
 
-export const getBook = async (
+export const getLibrary = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { id } = req.params;
-    const book = await bookService.getBookById(id);
+    const library = await libraryService.getLibraryById(id);
     res.status(200).json({
       status: "success",
-      data: book,
+      data: library,
     });
   } catch (error) {
     next(error);
   }
 };
 
-export const searchBooks = async (
+export const getUserLibraries = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { query } = req.query;
-    if (!query) {
-      throw new AppError("Search query is required", 400);
-    }
-    const books = await bookService.searchBooks(query as string);
+    const userId = req.user.id;
+    const libraries = await libraryService.getUserLibraries(userId);
     res.status(200).json({
       status: "success",
-      data: books,
+      data: libraries,
     });
   } catch (error) {
     next(error);
   }
 };
 
-export const updateBook = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
-    const bookData = req.body;
-    const book = await bookService.updateBook(id, bookData);
-    res.status(200).json({
-      status: "success",
-      data: book,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const deleteBook = async (
+export const updateLibrary = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { id } = req.params;
-    await bookService.deleteBook(id);
+    const { name } = req.body;
+    const library = await libraryService.updateLibrary(id, name);
+    res.status(200).json({
+      status: "success",
+      data: library,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteLibrary = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    await libraryService.deleteLibrary(id);
     res.status(204).json({
       status: "success",
       data: null,
@@ -94,96 +89,84 @@ export const deleteBook = async (
   }
 };
 
-export const addBookToLibrary = async (
+export const createShelf = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { bookId, libraryId, shelfId } = req.body;
-    const userId = req.user.id;
-    const userBook = await bookService.addBookToLibrary({
-      bookId,
-      userId,
-      libraryId,
-      shelfId,
-      status: "PLANNED",
-    });
+    const { libraryId } = req.params;
+    const { name } = req.body;
+    const shelf = await libraryService.createShelf(libraryId, name);
     res.status(201).json({
       status: "success",
-      data: userBook,
+      data: shelf,
     });
   } catch (error) {
     next(error);
   }
 };
 
-export const getUserBooks = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const userId = req.user.id;
-    const { libraryId, shelfId } = req.query;
-    const userBooks = await bookService.getUserBooks(
-      userId,
-      libraryId as string,
-      shelfId as string
-    );
-    res.status(200).json({
-      status: "success",
-      data: userBooks,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const updateUserBookStatus = async (
+export const getShelf = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
-    const userBook = await bookService.updateUserBookStatus(id, status);
+    const shelf = await libraryService.getShelfById(id);
     res.status(200).json({
       status: "success",
-      data: userBook,
+      data: shelf,
     });
   } catch (error) {
     next(error);
   }
 };
 
-export const moveBookToShelf = async (
+export const getLibraryShelves = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { id } = req.params;
-    const { shelfId } = req.body;
-    const userBook = await bookService.moveBookToShelf(id, shelfId);
+    const { libraryId } = req.params;
+    const shelves = await libraryService.getLibraryShelves(libraryId);
     res.status(200).json({
       status: "success",
-      data: userBook,
+      data: shelves,
     });
   } catch (error) {
     next(error);
   }
 };
 
-export const removeBookFromLibrary = async (
+export const updateShelf = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { id } = req.params;
-    await bookService.removeBookFromLibrary(id);
+    const { name } = req.body;
+    const shelf = await libraryService.updateShelf(id, name);
+    res.status(200).json({
+      status: "success",
+      data: shelf,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteShelf = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    await libraryService.deleteShelf(id);
     res.status(204).json({
       status: "success",
       data: null,

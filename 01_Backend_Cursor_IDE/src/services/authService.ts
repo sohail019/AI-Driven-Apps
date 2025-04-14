@@ -1,88 +1,102 @@
+import User from "../models/User";
+import { AppError } from "../utils/AppError";
+import emailService from "./emailService";
+import { v4 as uuidv4 } from "uuid";
+import {
+  IUser,
+  IRegisterRequest,
+  IAuthResponse,
+  IEmailVerificationResponse,
+} from "../types/auth.types";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { IUser } from "../models/User";
-import User from "../models/User";
-import emailService from "./emailService";
-import {
-  IRegisterRequest,
-  ILoginRequest,
-  IAuthResponse,
-} from "../types/auth.types";
-import { AppError } from "../utils/AppError";
 
 class AuthService {
+  private generateToken(userId: string): string {
+    return jwt.sign({ id: userId }, process.env.JWT_SECRET!, {
+      expiresIn: "1h",
+    });
+  }
+
+  private generateRefreshToken(userId: string): string {
+    return jwt.sign({ id: userId }, process.env.JWT_SECRET!, {
+      expiresIn: "7d",
+    });
+  }
+
+  private async saveRefreshToken(
+    userId: string,
+    refreshToken: string
+  ): Promise<void> {
+    await User.findOneAndUpdate(
+      { id: userId },
+      { refreshToken },
+      { new: true }
+    );
+  }
+
+  private generateAuthTokens(user: IUser): {
+    token: string;
+    refreshToken: string;
+  } {
+    const token = this.generateToken(user.id);
+    const refreshToken = this.generateRefreshToken(user.id);
+    return { token, refreshToken };
+  }
+
   /**
    * Register a new user
    * @param userData - User registration data
    * @returns Object containing user data, JWT token, and verification token
    * @throws AppError if registration fails
    */
-  async register(userData: IRegisterRequest): Promise<IAuthResponse> {
-    try {
-      // Check if user already exists
-      const existingUser = await User.findOne({
-        $or: [{ email: userData.email }, { username: userData.username }],
-      });
+  async registerUser(userData: IRegisterRequest): Promise<IAuthResponse> {
+    const { username, email, password, mobile } = userData;
 
-      if (existingUser) {
-        throw new AppError(
-          "User with this email or username already exists",
-          400
-        );
-      }
-
-      // Generate verification token
-      const verificationToken = crypto.randomBytes(32).toString("hex");
-      const verificationTokenExpiry = new Date(
-        Date.now() + 24 * 60 * 60 * 1000
-      ); // 24 hours
-
-      // Create new user
-      const user = new User({
-        ...userData,
-        verificationToken,
-        verificationTokenExpiry,
-      });
-      await user.save();
-
-      // Send verification email
-      try {
-        await emailService.sendVerificationEmail(user.email, verificationToken);
-      } catch (error) {
-        // If email fails, delete the user and throw error
-        await User.findByIdAndDelete(user._id);
-        throw new AppError(
-          "Failed to send verification email. Please try again.",
-          500
-        );
-      }
-
-      // Generate tokens
-      const token = this.generateToken(user);
-      const refreshToken = this.generateRefreshToken(user);
-
-      // Save refresh token
-      user.refreshToken = refreshToken;
-      await user.save();
-
-      // Prepare response
-      const response: IAuthResponse = {
-        user: {
-          id: user._id.toString(),
-          username: user.username,
-          email: user.email,
-          isVerified: user.isVerified,
-          createdAt: user.createdAt,
-        },
-        token,
-        refreshToken,
-      };
-
-      return response;
-    } catch (error) {
-      if (error instanceof AppError) throw error;
-      throw new AppError("Registration failed", 500);
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      throw new AppError("Email already exists", 409);
     }
+
+    // Create verification token
+    const verificationToken = uuidv4();
+    const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    // Create new user
+    const user = await User.create({
+      id: uuidv4(),
+      username,
+      email,
+      password,
+      mobile,
+      verificationToken,
+      verificationTokenExpiry,
+    });
+
+    // Generate tokens
+    const { token, refreshToken } = this.generateAuthTokens(user);
+    await this.saveRefreshToken(user.id, refreshToken);
+
+    // Send verification email
+    try {
+      await emailService.sendVerificationEmail(email, verificationToken);
+    } catch (error) {
+      console.error("Failed to send verification email:", error);
+      // Don't throw error, just log it
+    }
+
+    return {
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        mobile: user.mobile,
+        isVerified: user.isVerified,
+      },
+      accessToken: token,
+      refreshToken,
+    };
   }
 
   /**
@@ -91,73 +105,66 @@ class AuthService {
    * @returns Object containing user data and JWT tokens
    * @throws AppError if login fails
    */
-  async login(credentials: ILoginRequest): Promise<IAuthResponse> {
-    try {
-      // Find user by email
-      const user = await User.findOne({ email: credentials.email });
-      if (!user) {
-        throw new AppError("Invalid credentials", 401);
-      }
-
-      // Verify password
-      const isPasswordValid = await user.comparePassword(credentials.password);
-      if (!isPasswordValid) {
-        throw new AppError("Invalid credentials", 401);
-      }
-
-      // Check email verification
-      if (!user.isVerified) {
-        throw new AppError("Please verify your email first", 403);
-      }
-
-      // Generate tokens
-      const token = this.generateToken(user);
-      const refreshToken = this.generateRefreshToken(user);
-
-      // Save refresh token
-      user.refreshToken = refreshToken;
-      await user.save();
-
-      // Prepare response
-      const response: IAuthResponse = {
-        user: {
-          id: user._id.toString(),
-          username: user.username,
-          email: user.email,
-          isVerified: user.isVerified,
-          createdAt: user.createdAt,
-        },
-        token,
-        refreshToken,
-      };
-
-      return response;
-    } catch (error) {
-      if (error instanceof AppError) throw error;
-      throw new AppError("Login failed", 500);
+  async loginUser(email: string, password: string): Promise<IAuthResponse> {
+    const user = await User.findOne({ email });
+    if (!user) {
+      throw new AppError("Invalid credentials", 401);
     }
+
+    const isPasswordValid = await user.comparePassword(password);
+    if (!isPasswordValid) {
+      throw new AppError("Invalid credentials", 401);
+    }
+
+    if (!user.isVerified) {
+      throw new AppError("Please verify your email first", 403);
+    }
+
+    const { token, refreshToken } = this.generateAuthTokens(user);
+    await this.saveRefreshToken(user.id, refreshToken);
+
+    return {
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        mobile: user.mobile,
+        isVerified: user.isVerified,
+      },
+      accessToken: token,
+      refreshToken,
+    };
   }
 
-  async verifyEmail(token: string): Promise<void> {
+  async verifyEmail(token: string): Promise<IEmailVerificationResponse> {
     const user = await User.findOne({
       verificationToken: token,
-      verificationTokenExpiry: { $gt: Date.now() },
+      verificationTokenExpiry: { $gt: new Date() },
     });
 
     if (!user) {
-      throw new Error("Invalid or expired verification token");
+      throw new AppError("Invalid or expired verification token", 400);
     }
 
     user.isVerified = true;
-    user.verificationToken = null;
-    user.verificationTokenExpiry = null;
+    user.verificationToken = undefined;
+    user.verificationTokenExpiry = undefined;
     await user.save();
+
+    return {
+      message: "Email verified successfully",
+      user: {
+        id: user.id,
+        email: user.email,
+        isVerified: user.isVerified,
+      },
+    };
   }
 
-  async forgotPassword(email: string): Promise<string> {
+  async forgotPassword(email: string): Promise<void> {
     const user = await User.findOne({ email });
     if (!user) {
-      throw new Error("User not found");
+      throw new AppError("User not found", 404);
     }
 
     // Generate reset token
@@ -173,28 +180,29 @@ class AuthService {
       await emailService.sendPasswordResetEmail(user.email, resetToken);
     } catch (error) {
       // If email fails, reset the token
-      user.resetPasswordToken = null;
-      user.resetPasswordTokenExpiry = null;
+      user.resetPasswordToken = undefined;
+      user.resetPasswordTokenExpiry = undefined;
       await user.save();
-      throw new Error("Failed to send password reset email. Please try again.");
+      throw new AppError(
+        "Failed to send password reset email. Please try again.",
+        500
+      );
     }
-
-    return resetToken;
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
     const user = await User.findOne({
       resetPasswordToken: token,
-      resetPasswordTokenExpiry: { $gt: Date.now() },
+      resetPasswordTokenExpiry: { $gt: new Date() },
     });
 
     if (!user) {
-      throw new Error("Invalid or expired reset token");
+      throw new AppError("Invalid or expired reset token", 400);
     }
 
     user.password = newPassword;
-    user.resetPasswordToken = null;
-    user.resetPasswordTokenExpiry = null;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordTokenExpiry = undefined;
     await user.save();
   }
 
@@ -202,30 +210,21 @@ class AuthService {
     await User.findByIdAndUpdate(userId, { refreshToken: null });
   }
 
-  /**
-   * Generate JWT token
-   * @param user - User object
-   * @returns JWT token
-   */
-  private generateToken(user: IUser): string {
-    return jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET || "your_jwt_secret_key_here",
-      { expiresIn: "15m" }
-    );
-  }
+  async refreshAccessToken(refreshToken: string): Promise<string> {
+    try {
+      const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET!) as {
+        id: string;
+      };
+      const user = await User.findOne({ id: decoded.id, refreshToken });
 
-  /**
-   * Generate refresh token
-   * @param user - User object
-   * @returns Refresh token
-   */
-  private generateRefreshToken(user: IUser): string {
-    return jwt.sign(
-      { userId: user._id },
-      process.env.REFRESH_TOKEN_SECRET || "your_refresh_token_secret_here",
-      { expiresIn: "7d" }
-    );
+      if (!user) {
+        throw new AppError("Invalid refresh token", 401);
+      }
+
+      return this.generateToken(user.id);
+    } catch (error) {
+      throw new AppError("Invalid refresh token", 401);
+    }
   }
 }
 
