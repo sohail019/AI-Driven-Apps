@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import User, { IUser } from "../models/User";
+import emailService from "./emailService";
 
 class AuthService {
   async register(userData: {
@@ -29,6 +30,15 @@ class AuthService {
     });
     await user.save();
 
+    // Send verification email
+    try {
+      await emailService.sendVerificationEmail(user.email, verificationToken);
+    } catch (error) {
+      // If email fails, we might want to delete the user or handle it differently
+      await User.findByIdAndDelete(user._id);
+      throw new Error("Failed to send verification email. Please try again.");
+    }
+
     // Generate JWT token
     const token = this.generateToken(user);
     // Generate refresh token
@@ -40,9 +50,9 @@ class AuthService {
 
     // Remove sensitive data from response
     const userResponse = user.toObject();
-    delete userResponse.password;
-    delete userResponse.verificationToken;
-    delete userResponse.verificationTokenExpiry;
+    // delete userResponse.password;
+    // delete userResponse.verificationToken;
+    // delete userResponse.verificationTokenExpiry;
 
     return { user: userResponse, token, verificationToken };
   }
@@ -78,9 +88,9 @@ class AuthService {
 
     // Remove sensitive data from response
     const userResponse = user.toObject();
-    delete userResponse.password;
-    delete userResponse.verificationToken;
-    delete userResponse.verificationTokenExpiry;
+    // delete userResponse.password;
+    // delete userResponse.verificationToken;
+    // delete userResponse.verificationTokenExpiry;
 
     return { user: userResponse, token, refreshToken };
   }
@@ -114,6 +124,17 @@ class AuthService {
     user.resetPasswordToken = resetToken;
     user.resetPasswordTokenExpiry = resetTokenExpiry;
     await user.save();
+
+    // Send password reset email
+    try {
+      await emailService.sendPasswordResetEmail(user.email, resetToken);
+    } catch (error) {
+      // If email fails, reset the token
+      user.resetPasswordToken = null;
+      user.resetPasswordTokenExpiry = null;
+      await user.save();
+      throw new Error("Failed to send password reset email. Please try again.");
+    }
 
     return resetToken;
   }
