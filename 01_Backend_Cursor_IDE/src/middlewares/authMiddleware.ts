@@ -1,15 +1,20 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import User from "../models/User";
+import { SuperAdmin } from "../models/SuperAdmin";
+import { Admin } from "../models/Admin";
+import { Role } from "../types/rbac.types";
+import { IAuthenticatedUser } from "../types/auth.types";
 
 interface JwtPayload {
-  userId: string;
+  id: string;
+  role: string;
 }
 
 declare global {
   namespace Express {
     interface Request {
-      user?: any;
+      user?: IAuthenticatedUser;
     }
   }
 }
@@ -34,21 +39,37 @@ export const protect = async (
       process.env.JWT_SECRET || "your_jwt_secret_key_here"
     ) as JwtPayload;
 
-    // Get user from token
-    const user = await User.findById(decoded.userId).select("-password");
+    // Get user based on role
+    let user;
+    if (decoded.role === Role.SUPERADMIN) {
+      user = await SuperAdmin.findById(decoded.id).select("-password");
+    } else if (decoded.role === Role.ADMIN) {
+      user = await Admin.findById(decoded.id).select("-password");
+    } else {
+      user = await User.findById(decoded.id).select("-password");
+    }
+
     if (!user) {
       return res
         .status(401)
         .json({ message: "Not authorized, user not found" });
     }
 
-    if (!user.isVerified) {
+    if (decoded.role === Role.USER && !(user as any).isVerified) {
       return res
         .status(401)
         .json({ message: "Please verify your email first" });
     }
 
-    req.user = user;
+    // Set the authenticated user with role
+    req.user = {
+      id: (user as any)._id.toString(),
+      role: decoded.role as Role,
+      ...(decoded.role !== Role.SUPERADMIN && {
+        permissions: (user as any).permissions,
+      }),
+    };
+
     next();
   } catch (error) {
     res.status(401).json({ message: "Not authorized, token failed" });
@@ -70,7 +91,7 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
 
     // Generate new access token
     const accessToken = jwt.sign(
-      { userId: user._id },
+      { id: user._id, role: user.role },
       process.env.JWT_SECRET || "your_jwt_secret_key_here",
       { expiresIn: "15m" }
     );

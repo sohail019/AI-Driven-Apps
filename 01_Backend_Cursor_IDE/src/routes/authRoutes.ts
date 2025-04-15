@@ -6,6 +6,9 @@ import {
   forgotPassword,
   resetPassword,
   logout,
+  refreshToken,
+  superadminLogin,
+  adminLogin,
 } from "../controllers/authController";
 import {
   googleAuth,
@@ -21,20 +24,35 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   refreshTokenSchema,
+  superadminLoginSchema,
+  adminLoginSchema,
 } from "../validations/userValidation";
 import { protect } from "../middlewares/authMiddleware";
 import { refreshAccessToken } from "../middlewares/authMiddleware";
 
 const router = express.Router();
 
-// Auth routes
+// Public routes
 router.post("/register", validateRequest(registerSchema), register);
 router.post("/login", validateRequest(loginSchema), login);
-router.get(
-  "/verify-email/:token",
-  validateRequest(verifyEmailSchema),
-  verifyEmail
+router.post(
+  "/refresh-token",
+  validateRequest(refreshTokenSchema),
+  refreshToken
 );
+router.get("/verify-email/:token", verifyEmail);
+
+// Superadmin routes
+router.post(
+  "/superadmin/login",
+  validateRequest(superadminLoginSchema),
+  superadminLogin
+);
+
+// Admin routes
+router.post("/admin/login", validateRequest(adminLoginSchema), adminLogin);
+
+// Auth routes
 router.post(
   "/forgot-password",
   validateRequest(forgotPasswordSchema),
@@ -44,11 +62,6 @@ router.post(
   "/reset-password/:token",
   validateRequest(resetPasswordSchema),
   resetPassword
-);
-router.post(
-  "/refresh-token",
-  validateRequest(refreshTokenSchema),
-  refreshAccessToken
 );
 router.post("/logout", protect, logout);
 

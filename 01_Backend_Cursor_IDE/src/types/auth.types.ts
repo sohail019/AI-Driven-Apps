@@ -1,4 +1,5 @@
 import { Document } from "mongoose";
+import { Role, Permission } from "./rbac.types";
 
 /**
  * Interface for registration request data
@@ -86,4 +87,10 @@ export interface IErrorResponse {
 export interface ISuccessResponse<T> {
   status: "success";
   data: T;
+}
+
+export interface IAuthenticatedUser {
+  id: string;
+  role: Role;
+  permissions?: Permission[];
 }

@@ -1,28 +1,22 @@
-import mongoose, { Document, Schema } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 import bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
-import { IUserWithRole, Role, Permission } from "../types/rbac.types";
+import { Role } from "../types/rbac.types";
 
-export interface IUser extends Document {
-  id: string; // UUID
+export interface ISuperAdmin {
+  _id: string;
   username: string;
   email: string;
-  mobile: string;
   password: string;
+  mobile: string;
   isVerified: boolean;
-  verificationToken?: string;
-  verificationTokenExpiry?: Date;
-  resetPasswordToken?: string;
-  resetPasswordTokenExpiry?: Date;
   refreshToken?: string;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
-  role: Role;
-  permissions: Permission[];
 }
 
-const userSchema = new Schema<IUserWithRole>(
+const superAdminSchema = new Schema<ISuperAdmin>(
   {
     username: {
       type: String,
@@ -58,32 +52,7 @@ const userSchema = new Schema<IUserWithRole>(
     },
     isVerified: {
       type: Boolean,
-      default: false,
-    },
-    role: {
-      type: String,
-      enum: Object.values(Role),
-      default: Role.USER,
-      index: true,
-    },
-    permissions: [
-      {
-        type: String,
-        enum: Object.values(Permission),
-      },
-    ],
-    verificationToken: String,
-    verificationTokenExpiry: {
-      type: Date,
-      default: null,
-    },
-    resetPasswordToken: {
-      type: String,
-      default: null,
-    },
-    resetPasswordTokenExpiry: {
-      type: Date,
-      default: null,
+      default: true, // Superadmin is always verified
     },
     refreshToken: {
       type: String,
@@ -98,10 +67,6 @@ const userSchema = new Schema<IUserWithRole>(
         delete ret._id;
         delete ret.__v;
         delete ret.password;
-        delete ret.verificationToken;
-        delete ret.verificationTokenExpiry;
-        delete ret.resetPasswordToken;
-        delete ret.resetPasswordTokenExpiry;
         return ret;
       },
     },
@@ -109,7 +74,7 @@ const userSchema = new Schema<IUserWithRole>(
 );
 
 // Pre-save middleware to generate UUID for _id
-userSchema.pre("save", function (next) {
+superAdminSchema.pre("save", function (next) {
   if (!this._id) {
     this._id = uuidv4();
   }
@@ -117,13 +82,11 @@ userSchema.pre("save", function (next) {
 });
 
 // Hash password before saving
-userSchema.pre("save", async function (next) {
+superAdminSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
-
   try {
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(this.get("password"), salt);
-    this.set("password", hashedPassword);
+    this.password = await bcrypt.hash(this.password, salt);
     next();
   } catch (error: any) {
     next(error);
@@ -131,10 +94,13 @@ userSchema.pre("save", async function (next) {
 });
 
 // Method to compare password
-userSchema.methods.comparePassword = async function (
+superAdminSchema.methods.comparePassword = async function (
   candidatePassword: string
 ): Promise<boolean> {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-export default mongoose.model<IUserWithRole>("User", userSchema);
+export const SuperAdmin = mongoose.model<ISuperAdmin>(
+  "SuperAdmin",
+  superAdminSchema
+);

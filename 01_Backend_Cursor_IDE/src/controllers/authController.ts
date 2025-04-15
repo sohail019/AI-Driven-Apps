@@ -1,16 +1,17 @@
 import { Request, Response, NextFunction } from "express";
-import authService from "../services/authService";
-import { AppError } from "../utils/AppError";
+import { authService } from "../services/authService";
 import {
-  IAuthResponse,
   IRegisterRequest,
   ILoginRequest,
-  IRefreshTokenRequest,
-  IEmailVerificationResponse,
-  ISuccessResponse,
+  IAuthResponse,
   IErrorResponse,
+  ISuccessResponse,
+  IEmailVerificationResponse,
+  IUser,
 } from "../types/auth.types";
-import { IUser } from "../models/User";
+import { Role } from "../types/rbac.types";
+import { SuperAdmin } from "../models/SuperAdmin";
+import User from "../models/User";
 
 /**
  * @swagger
@@ -48,29 +49,21 @@ import { IUser } from "../models/User";
  */
 export const register = async (
   req: Request<{}, {}, IRegisterRequest>,
-  res: Response<ISuccessResponse<IAuthResponse> | IErrorResponse>,
-  next: NextFunction
-): Promise<void> => {
+  res: Response<ISuccessResponse<IAuthResponse> | IErrorResponse>
+) => {
   try {
-    const { username, email, password, mobile } = req.body;
-
-    if (!username || !email || !password || !mobile) {
-      throw new AppError("All fields are required", 400);
-    }
-
-    const result = await authService.registerUser({
-      username,
-      email,
-      password,
-      mobile,
-    });
-
+    const result = await authService.registerUser(req.body);
     res.status(201).json({
       status: "success",
       data: result,
     });
   } catch (error) {
-    next(error);
+    if (error instanceof Error) {
+      res.status(400).json({
+        status: "error",
+        message: error.message,
+      });
+    }
   }
 };
 
@@ -104,24 +97,103 @@ export const register = async (
  */
 export const login = async (
   req: Request<{}, {}, ILoginRequest>,
-  res: Response<ISuccessResponse<IAuthResponse> | IErrorResponse>,
-  next: NextFunction
-): Promise<void> => {
+  res: Response<ISuccessResponse<IAuthResponse> | IErrorResponse>
+) => {
   try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      throw new AppError("Email and password are required", 400);
-    }
-
-    const result = await authService.loginUser(email, password);
-
+    const result = await authService.loginUser(req.body);
     res.status(200).json({
       status: "success",
       data: result,
     });
   } catch (error) {
-    next(error);
+    if (error instanceof Error) {
+      res.status(400).json({
+        status: "error",
+        message: error.message,
+      });
+    }
+  }
+};
+
+export const superadminLogin = async (
+  req: Request<{}, {}, ILoginRequest>,
+  res: Response<ISuccessResponse<IAuthResponse> | IErrorResponse>
+) => {
+  try {
+    const { email, password } = req.body;
+    const superAdmin = await SuperAdmin.findOne({ email }).select("+password");
+
+    if (!superAdmin) {
+      return res.status(401).json({
+        status: "error",
+        message: "Invalid credentials",
+      });
+    }
+
+    const isPasswordValid = await (superAdmin as any).comparePassword(password);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        status: "error",
+        message: "Invalid credentials",
+      });
+    }
+
+    const result = await authService.generateAuthTokens(
+      superAdmin,
+      Role.SUPERADMIN
+    );
+    res.status(200).json({
+      status: "success",
+      data: result,
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(400).json({
+        status: "error",
+        message: error.message,
+      });
+    }
+  }
+};
+
+export const adminLogin = async (
+  req: Request<{}, {}, ILoginRequest>,
+  res: Response<ISuccessResponse<IAuthResponse> | IErrorResponse>
+) => {
+  try {
+    const { email, password } = req.body;
+    const admin = await User.findOne({
+      email,
+      role: Role.ADMIN,
+    }).select("+password");
+
+    if (!admin) {
+      return res.status(401).json({
+        status: "error",
+        message: "Invalid credentials",
+      });
+    }
+
+    const isPasswordValid = await (admin as any).comparePassword(password);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        status: "error",
+        message: "Invalid credentials",
+      });
+    }
+
+    const result = await authService.generateAuthTokens(admin, Role.ADMIN);
+    res.status(200).json({
+      status: "success",
+      data: result,
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(400).json({
+        status: "error",
+        message: error.message,
+      });
+    }
   }
 };
 
@@ -146,25 +218,23 @@ export const login = async (
  *         description: User not found
  */
 export const verifyEmail = async (
-  req: Request<{ token: string }>,
-  res: Response<ISuccessResponse<IEmailVerificationResponse> | IErrorResponse>,
-  next: NextFunction
-): Promise<void> => {
+  req: Request,
+  res: Response<ISuccessResponse<IEmailVerificationResponse> | IErrorResponse>
+) => {
   try {
     const { token } = req.params;
-
-    if (!token) {
-      throw new AppError("Verification token is required", 400);
-    }
-
     const result = await authService.verifyEmail(token);
-
     res.status(200).json({
       status: "success",
       data: result,
     });
   } catch (error) {
-    next(error);
+    if (error instanceof Error) {
+      res.status(400).json({
+        status: "error",
+        message: error.message,
+      });
+    }
   }
 };
 
@@ -192,25 +262,23 @@ export const verifyEmail = async (
  *         description: Invalid refresh token
  */
 export const refreshToken = async (
-  req: Request<{}, {}, IRefreshTokenRequest>,
-  res: Response<ISuccessResponse<{ accessToken: string }> | IErrorResponse>,
-  next: NextFunction
-): Promise<void> => {
+  req: Request,
+  res: Response<ISuccessResponse<{ accessToken: string }> | IErrorResponse>
+) => {
   try {
     const { refreshToken } = req.body;
-
-    if (!refreshToken) {
-      throw new AppError("Refresh token is required", 400);
-    }
-
-    const accessToken = await authService.refreshAccessToken(refreshToken);
-
+    const result = await authService.refreshAccessToken(refreshToken);
     res.status(200).json({
       status: "success",
-      data: { accessToken },
+      data: result,
     });
   } catch (error) {
-    next(error);
+    if (error instanceof Error) {
+      res.status(400).json({
+        status: "error",
+        message: error.message,
+      });
+    }
   }
 };
 
@@ -317,7 +385,7 @@ export const logout = async (
     if (!req.user) {
       throw new Error("User not authenticated");
     }
-    const user = req.user as IUser;
+    const user = req.user as unknown as IUser;
     await authService.logout(user.id);
     res.json({ message: "Logged out successfully" });
   } catch (error) {

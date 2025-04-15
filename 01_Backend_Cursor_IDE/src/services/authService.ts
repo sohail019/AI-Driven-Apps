@@ -1,47 +1,54 @@
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import User from "../models/User";
+import { SuperAdmin } from "../models/SuperAdmin";
+import {
+  IRegisterRequest,
+  ILoginRequest,
+  IAuthResponse,
+} from "../types/auth.types";
+import { Role } from "../types/rbac.types";
 import { AppError } from "../utils/AppError";
 import emailService from "./emailService";
 import { v4 as uuidv4 } from "uuid";
-import {
-  IUser,
-  IRegisterRequest,
-  IAuthResponse,
-  IEmailVerificationResponse,
-} from "../types/auth.types";
-import jwt from "jsonwebtoken";
+import { IUser, IEmailVerificationResponse } from "../types/auth.types";
 import crypto from "crypto";
 
 class AuthService {
-  private generateToken(userId: string): string {
-    return jwt.sign({ id: userId }, process.env.JWT_SECRET!, {
-      expiresIn: "1h",
+  private generateAccessToken(user: any, role: Role): string {
+    return jwt.sign({ id: user.id, role }, process.env.JWT_SECRET as string, {
+      expiresIn: "15m",
     });
   }
 
-  private generateRefreshToken(userId: string): string {
-    return jwt.sign({ id: userId }, process.env.JWT_SECRET!, {
+  private generateRefreshToken(user: any, role: Role): string {
+    return jwt.sign({ id: user.id, role }, process.env.JWT_SECRET as string, {
       expiresIn: "7d",
     });
   }
 
-  private async saveRefreshToken(
-    userId: string,
-    refreshToken: string
-  ): Promise<void> {
-    await User.findOneAndUpdate(
-      { id: userId },
-      { refreshToken },
-      { new: true }
-    );
-  }
+  async generateAuthTokens(user: any, role: Role): Promise<IAuthResponse> {
+    const accessToken = this.generateAccessToken(user, role);
+    const refreshToken = this.generateRefreshToken(user, role);
 
-  private generateAuthTokens(user: IUser): {
-    token: string;
-    refreshToken: string;
-  } {
-    const token = this.generateToken(user.id);
-    const refreshToken = this.generateRefreshToken(user.id);
-    return { token, refreshToken };
+    // Save refresh token to database
+    if (role === Role.SUPERADMIN) {
+      await SuperAdmin.findByIdAndUpdate(user.id, { refreshToken });
+    } else {
+      await User.findByIdAndUpdate(user.id, { refreshToken });
+    }
+
+    return {
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        mobile: user.mobile,
+        isVerified: user.isVerified,
+      },
+      accessToken,
+      refreshToken,
+    };
   }
 
   /**
@@ -50,53 +57,40 @@ class AuthService {
    * @returns Object containing user data, JWT token, and verification token
    * @throws AppError if registration fails
    */
-  async registerUser(userData: IRegisterRequest): Promise<IAuthResponse> {
-    const { username, email, password, mobile } = userData;
+  async registerUser(data: IRegisterRequest): Promise<IAuthResponse> {
+    const { username, email, password, mobile } = data;
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    // Check if user exists
+    const existingUser = await User.findOne({ $or: [{ email }, { mobile }] });
     if (existingUser) {
-      throw new AppError("Email already exists", 409);
+      throw new AppError("User with this email or mobile already exists", 400);
     }
-
-    // Create verification token
-    const verificationToken = uuidv4();
-    const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
     // Create new user
     const user = await User.create({
-      id: uuidv4(),
       username,
       email,
       password,
       mobile,
-      verificationToken,
-      verificationTokenExpiry,
     });
 
-    // Generate tokens
-    const { token, refreshToken } = this.generateAuthTokens(user);
-    await this.saveRefreshToken(user.id, refreshToken);
+    // Generate verification token
+    const verificationToken = jwt.sign(
+      { id: user.id },
+      process.env.JWT_SECRET as string,
+      { expiresIn: "24h" }
+    );
+
+    // Save verification token
+    user.verificationToken = verificationToken;
+    user.verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await user.save();
 
     // Send verification email
-    try {
-      await emailService.sendVerificationEmail(email, verificationToken);
-    } catch (error) {
-      console.error("Failed to send verification email:", error);
-      // Don't throw error, just log it
-    }
+    await emailService.sendVerificationEmail(user.email, verificationToken);
 
-    return {
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        mobile: user.mobile,
-        isVerified: user.isVerified,
-      },
-      accessToken: token,
-      refreshToken,
-    };
+    // Generate tokens
+    return this.generateAuthTokens(user, Role.USER);
   }
 
   /**
@@ -105,60 +99,56 @@ class AuthService {
    * @returns Object containing user data and JWT tokens
    * @throws AppError if login fails
    */
-  async loginUser(email: string, password: string): Promise<IAuthResponse> {
-    const user = await User.findOne({ email });
+  async loginUser(data: ILoginRequest): Promise<IAuthResponse> {
+    const { email, password } = data;
+
+    // Find user
+    const user = await User.findOne({ email }).select("+password");
     if (!user) {
       throw new AppError("Invalid credentials", 401);
     }
-
-    const isPasswordValid = await user.comparePassword(password);
+    // Check password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       throw new AppError("Invalid credentials", 401);
     }
 
-    if (!user.isVerified) {
-      throw new AppError("Please verify your email first", 403);
-    }
-
-    const { token, refreshToken } = this.generateAuthTokens(user);
-    await this.saveRefreshToken(user.id, refreshToken);
-
-    return {
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        mobile: user.mobile,
-        isVerified: user.isVerified,
-      },
-      accessToken: token,
-      refreshToken,
-    };
+    // Generate tokens
+    return this.generateAuthTokens(user, Role.USER);
   }
 
   async verifyEmail(token: string): Promise<IEmailVerificationResponse> {
-    const user = await User.findOne({
-      verificationToken: token,
-      verificationTokenExpiry: { $gt: new Date() },
-    });
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
+        id: string;
+      };
 
-    if (!user) {
+      const user = await User.findOne({
+        _id: decoded.id,
+        verificationToken: token,
+        verificationTokenExpiry: { $gt: new Date() },
+      });
+
+      if (!user) {
+        throw new AppError("Invalid or expired verification token", 400);
+      }
+
+      user.isVerified = true;
+      user.verificationToken = undefined;
+      user.verificationTokenExpiry = undefined;
+      await user.save();
+
+      return {
+        message: "Email verified successfully",
+        user: {
+          id: user.id,
+          email: user.email,
+          isVerified: user.isVerified,
+        },
+      };
+    } catch (error) {
       throw new AppError("Invalid or expired verification token", 400);
     }
-
-    user.isVerified = true;
-    user.verificationToken = undefined;
-    user.verificationTokenExpiry = undefined;
-    await user.save();
-
-    return {
-      message: "Email verified successfully",
-      user: {
-        id: user.id,
-        email: user.email,
-        isVerified: user.isVerified,
-      },
-    };
   }
 
   async forgotPassword(email: string): Promise<void> {
@@ -210,22 +200,36 @@ class AuthService {
     await User.findByIdAndUpdate(userId, { refreshToken: null });
   }
 
-  async refreshAccessToken(refreshToken: string): Promise<string> {
+  async refreshAccessToken(
+    refreshToken: string
+  ): Promise<{ accessToken: string }> {
     try {
-      const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET!) as {
+      const decoded = jwt.verify(
+        refreshToken,
+        process.env.JWT_SECRET as string
+      ) as {
         id: string;
+        role: Role;
       };
-      const user = await User.findOne({ id: decoded.id, refreshToken });
 
-      if (!user) {
+      // Find user by role
+      let user;
+      if (decoded.role === Role.SUPERADMIN) {
+        user = await SuperAdmin.findById(decoded.id);
+      } else {
+        user = await User.findById(decoded.id);
+      }
+
+      if (!user || (user as any).refreshToken !== refreshToken) {
         throw new AppError("Invalid refresh token", 401);
       }
 
-      return this.generateToken(user.id);
+      const accessToken = this.generateAccessToken(user, decoded.role);
+      return { accessToken };
     } catch (error) {
       throw new AppError("Invalid refresh token", 401);
     }
   }
 }
 
-export default new AuthService();
+export const authService = new AuthService();

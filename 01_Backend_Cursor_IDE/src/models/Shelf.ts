@@ -6,6 +6,7 @@ const shelfSchema = new Schema<IShelf>({
   id: { type: String, default: uuidv4, unique: true },
   name: { type: String, required: true },
   libraryId: { type: String, required: true, ref: "Library" },
+  order: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
