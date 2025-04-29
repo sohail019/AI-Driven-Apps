@@ -1,10 +1,16 @@
 import { useSelector } from "react-redux";
-import { RootState } from "../store/store";
+import { RootState } from "../../store/store";
 import { Users, FileText, Image, ArrowUpRight } from "lucide-react";
-import { Button } from "../components/ui/button";
+import { Button } from "../../components/ui/button";
+import { useTranslation } from "react-i18next";
+import LineChart from "../../components/charts/LineChart";
+import BarChart from "@/components/charts/BarChart";
 
 const Dashboard = () => {
-  const { user } = useSelector((state: RootState) => state.auth);
+  const { t } = useTranslation();
+  const { adminInfo } = useSelector((state: RootState) => state.auth);
+  const username =
+    adminInfo?.fullName ?? t("common.defaultUser", { defaultValue: "User" });
 
   const stats = [
     {
@@ -71,14 +77,18 @@ const Dashboard = () => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Welcome back, {user?.name || "User"}
+              {/* Welcome back, {user?.name || "User"} */}
+              {/* {t("dashboard.welcome ")} */}
+              {/* {t("dashboard.welcome", { name: user?.name || "Sohail" })} */}
+              {t("dashboard.welcome", { name: username })}
             </h1>
             <p className="text-gray-500 dark:text-gray-400 mt-1">
-              Here's what's happening with your CMS today.
+              {/* Here's what's happening with your CMS today. */}
+              {t("dashboard.recentActivity")}
             </p>
           </div>
-          <Button className="flex items-center gap-2">
-            <FileText className="h-4 w-4" /> Create New Page
+          <Button className="flex items-center gap-2 bg-blue-500 text-white">
+            <FileText className="h-4 w-4" /> {t("dashboard.createNew")}
           </Button>
         </div>
       </div>
@@ -104,6 +114,17 @@ const Dashboard = () => {
             <p className="text-gray-500 dark:text-gray-400">{stat.title}</p>
           </div>
         ))}
+      </div>
+
+      {/* Quick Chart Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          {t("charts.quickOverview")}
+        </h2>
+        <div className="h-[300px] flex gap-4 justify-center items-center w-full ">
+          <LineChart />
+          <BarChart />
+        </div>
       </div>
 
       {/* Recent Activity */}

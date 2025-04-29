@@ -1,66 +1,72 @@
 import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  loginStart,
-  loginSuccess,
-  loginFailure,
   logout as logoutAction,
-  User,
-  updateUser,
+  setRefreshToken,
+  updateAdminInfo,
+  login as loginAction,
 } from "../store/slices/authSlice";
 import { RootState } from "../store/store";
-import { authAPI } from "../lib/api";
+import { authAPI } from "../lib/api/auth";
 
 export function useAuth() {
   const dispatch = useDispatch();
-  const { user, token, isAuthenticated, isLoading, error } = useSelector(
+  const { token, isAuthenticated, userType, adminInfo } = useSelector(
     (state: RootState) => state.auth
   );
 
   const login = useCallback(
     async (email: string, password: string) => {
-      try {
-        dispatch(loginStart());
-        const response = await authAPI.login(email, password);
-        dispatch(
-          loginSuccess({
-            user: response.user,
-            token: response.token,
-          })
-        );
-        return response;
-      } catch (error) {
-        let errorMessage = "Failed to login";
-        if (typeof error === "object" && error !== null && "message" in error) {
-          errorMessage = String(error.message);
-        }
-        dispatch(loginFailure(errorMessage));
-        throw error;
-      }
+      const response = await authAPI.login(email, password);
+      const { fullName, email: adminEmail } = response.data.admin;
+      dispatch(
+        loginAction({
+          ...response.data,
+          ...{ userType: "Admin", adminInfo: { fullName, email: adminEmail } },
+        })
+      );
+
+      // dispatch(
+      //   setRefreshToken({
+      //     newToken: response.data.token,
+      //     newRefreshToken: response.data.refreshToken,
+      //     newExpiryDate: response.data.tokenExpiryDate,
+      //   })
+      // );
+      return response;
+    },
+    [dispatch]
+  );
+
+  const superAdminLogin = useCallback(
+    async (email: string, password: string) => {
+      const response = await authAPI.superAdminLogin(email, password);
+      const { fullName, email: superAdminEmail } = response.data.superAdmin;
+      dispatch(
+        loginAction({
+          ...response.data,
+          ...{
+            userType: "SuperAdmin",
+            adminInfo: { fullName, email: superAdminEmail },
+          },
+        })
+      );
+      return response;
     },
     [dispatch]
   );
 
   const register = useCallback(
     async (name: string, email: string, password: string, mobile: string) => {
-      try {
-        dispatch(loginStart());
-        const response = await authAPI.register(name, email, password, mobile);
-        dispatch(
-          loginSuccess({
-            user: response.user,
-            token: response.token,
-          })
-        );
-        return response;
-      } catch (error) {
-        let errorMessage = "Failed to register";
-        if (typeof error === "object" && error !== null && "message" in error) {
-          errorMessage = String(error.message);
-        }
-        dispatch(loginFailure(errorMessage));
-        throw error;
-      }
+      const response = await authAPI.register(name, email, password, mobile);
+      dispatch(
+        setRefreshToken({
+          newToken: response.data.token,
+          newRefreshToken: response.data.refreshToken,
+          newExpiryDate: response.data.tokenExpiryDate,
+        })
+      );
+      return response;
     },
     [dispatch]
   );
@@ -80,21 +86,21 @@ export function useAuth() {
   }, [dispatch, isAuthenticated]);
 
   const updateProfile = useCallback(
-    async (userData: Partial<User>) => {
+    async (userData: { fullName: string; email: string }) => {
       const response = await authAPI.getCurrentUser();
-      dispatch(updateUser(userData));
+      dispatch(updateAdminInfo(userData));
       return response;
     },
     [dispatch]
   );
 
   return {
-    user,
     token,
     isAuthenticated,
-    isLoading,
-    error,
+    userType,
+    adminInfo,
     login,
+    superAdminLogin,
     register,
     logout,
     updateProfile,

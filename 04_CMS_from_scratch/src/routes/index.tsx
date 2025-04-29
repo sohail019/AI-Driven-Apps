@@ -12,8 +12,8 @@ import MainLayout from "./layouts/MainLayout";
 import AuthLayout from "./layouts/AuthLayout";
 
 // Pages
-import Dashboard from "../pages/Dashboard";
-import Login from "../pages/auth/Login";
+import Dashboard from "../pages/dashboard/Dashboard";
+import Login from "../pages/auth/admin/Login";
 import Register from "../pages/auth/Register";
 import ForgotPassword from "../pages/auth/ForgotPassword";
 import NotFound from "../pages/NotFound";
@@ -21,16 +21,22 @@ import Profile from "../pages/Profile";
 import PagesList from "../pages/cms/PagesList";
 import PageEditor from "../pages/cms/PageEditor";
 import Settings from "../pages/Settings";
-import AccessDenied from "../pages/AccessDenied";
 import UsersList from "../pages/users/UsersList";
+import ChartPage from "../pages/ChartPage";
+import BooksPage from "../pages/books/BooksPage";
+import SubscriptionPage from "../pages/cms/SubscriptionPage";
+import FreeFeaturesPage from "../pages/cms/FreeFeaturesPage";
 
 // Auth Guard
 import AccessGuard from "../components/auth/AccessGuard";
+import SuperAdminLogin from "@/pages/auth/superadmin/Login";
+import AdminsList from "@/pages/admins/AdminsList";
+import AISpotifyPage from "@/pages/AISpotifyPage";
+import DashboardPage from "@/pages/dashboard/DashboardPage";
 
 // Protected route wrapper - only accessible when authenticated
 const ProtectedRoute = () => {
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
-
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -60,26 +66,38 @@ const router = createBrowserRouter([
         element: <MainLayout />,
         children: [
           { path: "/", element: <Navigate to="/dashboard" replace /> },
-          { path: "dashboard", element: <Dashboard /> },
+          {
+            path: "dashboard",
+            element: (
+              <AccessGuard requiredAccess="SuperAdmin">
+                <DashboardPage />
+              </AccessGuard>
+            ),
+          },
           { path: "profile", element: <Profile /> },
           { path: "settings", element: <Settings /> },
-          //   {
-          //     path: "users",
-          //     element: (
-          //       <AccessGuard requiredRole="admin">
-          //         <UsersList />
-          //       </AccessGuard>
-          //     ),
-          //   },
+          { path: "charts", element: <ChartPage /> },
+          { path: "books", element: <BooksPage /> },
+          {
+            path: "ai-spotify",
+            element: <AISpotifyPage />,
+          },
           {
             path: "users",
             element: <UsersList />,
           },
-
+          {
+            path: "admins",
+            element: (
+              <AccessGuard requiredAccess="SuperAdmin">
+                <AdminsList />
+              </AccessGuard>
+            ),
+          },
           {
             path: "users/create",
             element: (
-              <AccessGuard requiredRole="admin">
+              <AccessGuard requiredAccess="SuperAdmin">
                 <div>Create User Page</div>
               </AccessGuard>
             ),
@@ -87,7 +105,7 @@ const router = createBrowserRouter([
           {
             path: "users/edit/:id",
             element: (
-              <AccessGuard requiredRole="admin">
+              <AccessGuard requiredAccess="SuperAdmin">
                 <div>Edit User Page</div>
               </AccessGuard>
             ),
@@ -97,11 +115,7 @@ const router = createBrowserRouter([
             children: [
               {
                 path: "pages",
-                element: (
-                  <AccessGuard requiredAccess="pages">
-                    <PagesList />
-                  </AccessGuard>
-                ),
+                element: <PagesList />,
               },
               {
                 path: "pages/new",
@@ -119,9 +133,24 @@ const router = createBrowserRouter([
                   </AccessGuard>
                 ),
               },
+              {
+                path: "subscriptions",
+                element: (
+                  <AccessGuard requiredAccess="SuperAdmin">
+                    <SubscriptionPage />
+                  </AccessGuard>
+                ),
+              },
+              {
+                path: "free-features",
+                element: (
+                  <AccessGuard requiredAccess="SuperAdmin">
+                    <FreeFeaturesPage />
+                  </AccessGuard>
+                ),
+              },
             ],
           },
-          // Add additional protected routes here as needed
         ],
       },
     ],
@@ -135,13 +164,13 @@ const router = createBrowserRouter([
         element: <AuthLayout />,
         children: [
           { path: "login", element: <Login /> },
+          { path: "superadmin-login", element: <SuperAdminLogin /> },
           { path: "register", element: <Register /> },
           { path: "forgot-password", element: <ForgotPassword /> },
         ],
       },
     ],
   },
-  { path: "access-denied", element: <AccessDenied /> },
   { path: "*", element: <NotFound /> },
 ]);
 

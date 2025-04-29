@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { userAPI } from "../../lib/api";
-import type { User } from "../../lib/api";
+import { userAPI, User } from "../../lib/api/users";
 import {
   DataTable,
   DataTableColumn,
@@ -9,199 +8,164 @@ import {
 } from "../../components/ui/data-table/DataTable";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import { Plus, Search, Edit, UserCheck, UserX, Trash2 } from "lucide-react";
+import { Plus, Search, Edit, UserCheck, UserX } from "lucide-react";
 import { useToast } from "../../hooks/useToast";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "../../components/ui/dialog";
+import { Label } from "../../components/ui/label";
 
 const UsersList = () => {
   const navigate = useNavigate();
-  const { success, error } = useToast();
+  const { error } = useToast();
 
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortColumn, setSortColumn] = useState<string>("updatedAt");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  // Safe access helper to prevent null pointer errors
-  const safeString = (value: string | null | undefined): string => {
-    return value || "";
-  };
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
+  const [userToToggle, setUserToToggle] = useState<User | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [userToEdit, setUserToEdit] = useState<User | null>(null);
+  const [editFormData, setEditFormData] = useState<Partial<User>>({});
 
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      const data = await userAPI.getUsers();
-      console.log("Users data:", data.users);
-      if (Array.isArray(data.users)) {
+      const data = await userAPI.getUsers({
+        page: currentPage,
+        limit: 10,
+        sortOrder: "desc",
+        fullName: searchTerm,
+      });
+
+      if (data) {
         setUsers(data.users);
+        setTotalPages(Math.ceil(data.total / 10));
       } else {
         setUsers([]);
-
+        setTotalPages(1);
         error("Failed to load users");
       }
-      //   setUsers(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Error fetching users:", err);
       error("Failed to load users");
       setUsers([]);
+      setTotalPages(1);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSort = (column: string, direction: "asc" | "desc") => {
-    setSortColumn(column);
-    setSortDirection(direction);
+  useEffect(() => {
+    fetchUsers();
+  }, [currentPage, searchTerm]);
 
-    // Sort the users array based on the selected column and direction
-    const sortedUsers = [...users].sort((a, b) => {
-      // These variables will hold the values to compare
-      let aValue: string | number;
-      let bValue: string | number;
-
-      // Handle special case for fullName which is a combination of fields
-      if (column === "fullName") {
-        aValue = `${safeString(a.firstName)} ${safeString(
-          a.lastName
-        )}`.toLowerCase();
-        bValue = `${safeString(b.firstName)} ${safeString(
-          b.lastName
-        )}`.toLowerCase();
-      } else if (column === "email") {
-        aValue = safeString(a.email).toLowerCase();
-        bValue = safeString(b.email).toLowerCase();
-      } else if (column === "mobile") {
-        aValue = safeString(a.mobile).toLowerCase();
-        bValue = safeString(b.mobile).toLowerCase();
-      } else if (column === "status") {
-        aValue = a.isActive ? "active" : "inactive";
-        bValue = b.isActive ? "active" : "inactive";
-      } else if (column === "updatedAt" || column === "createdAt") {
-        // Handle date columns
-        const aDate = a[column as keyof User] as string;
-        const bDate = b[column as keyof User] as string;
-        aValue = aDate ? new Date(aDate).getTime() : 0;
-        bValue = bDate ? new Date(bDate).getTime() : 0;
-      } else {
-        // Default fallback for other columns
-        aValue = safeString((a as any)[column]);
-        bValue = safeString((b as any)[column]);
-      }
-
-      // Perform the actual comparison based on types
-      if (typeof aValue === "string" && typeof bValue === "string") {
-        return direction === "asc"
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
-      } else if (typeof aValue === "number" && typeof bValue === "number") {
-        return direction === "asc" ? aValue - bValue : bValue - aValue;
-      }
-
-      return 0;
-    });
-
-    setUsers(sortedUsers);
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page on new search
   };
 
-  const handleDeleteUser = async (user: User) => {
-    if (!user || !user._id) {
-      error("Invalid user data");
-      return;
-    }
-
-    if (
-      !window.confirm(
-        `Are you sure you want to delete ${safeString(
-          user.firstName
-        )} ${safeString(user.lastName)}?`
-      )
-    ) {
-      return;
-    }
-
-    try {
-      await userAPI.deleteUser(user._id);
-      setUsers(users.filter((u) => u._id !== user._id));
-      success(`User deleted successfully`);
-    } catch (err) {
-      console.error("Error deleting user:", err);
-      error("Failed to delete user");
-    }
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   const handleToggleStatus = async (user: User) => {
-    if (!user || !user._id) {
-      error("Invalid user data");
-      return;
-    }
+    setUserToToggle(user);
+    setIsStatusDialogOpen(true);
+  };
 
-    const newStatus = !user.isActive;
-    const action = newStatus ? "activate" : "deactivate";
-
-    if (
-      !window.confirm(
-        `Are you sure you want to ${action} ${safeString(
-          user.firstName
-        )} ${safeString(user.lastName)}?`
-      )
-    ) {
-      return;
-    }
+  const confirmToggleStatus = async () => {
+    if (!userToToggle?._id) return;
 
     try {
-      const updatedUser = await userAPI.toggleUserStatus(user._id, newStatus);
-      setUsers(users.map((u) => (u._id === user._id ? updatedUser : u)));
-      success(`User ${action}d successfully`);
+      await userAPI.toggleUserStatus(userToToggle._id, !userToToggle.isActive);
+      toast.success(
+        `User ${
+          userToToggle.isActive ? "deactivated" : "activated"
+        } successfully`
+      );
+      fetchUsers(); // Refresh the list
     } catch (err) {
-      console.error(`Error ${action}ing user:`, err);
-      error(`Failed to ${action} user`);
+      console.error("Error toggling user status:", err);
+      toast.error("Failed to update user status");
+    } finally {
+      setIsStatusDialogOpen(false);
+      setUserToToggle(null);
     }
   };
 
-  // Filter users based on search term - guard against non-array users
-  const filteredUsers = Array.isArray(users)
-    ? users.filter((user) => {
-        if (!user) return false;
+  const handleEditUser = async (user: User) => {
+    try {
+      const userDetails = await userAPI.getUserById(user._id);
+      setUserToEdit(userDetails);
+      setEditFormData(userDetails);
+      setIsEditDialogOpen(true);
+    } catch (err) {
+      console.error("Error fetching user details:", err);
+      toast.error("Failed to load user details");
+    }
+  };
 
-        const fullName = `${safeString(user.firstName)} ${safeString(
-          user.lastName
-        )}`.toLowerCase();
-        const email = safeString(user.email).toLowerCase();
-        const mobile = safeString(user.mobile).toLowerCase();
-        const searchLower = searchTerm.toLowerCase();
+  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
-        return (
-          fullName.includes(searchLower) ||
-          email.includes(searchLower) ||
-          mobile.includes(searchLower)
-        );
-      })
-    : [];
+  const handleEditSubmit = async () => {
+    if (!userToEdit?._id) return;
+
+    try {
+      await userAPI.updateUser(userToEdit._id, editFormData);
+      toast.success("User updated successfully");
+      setIsEditDialogOpen(false);
+      fetchUsers(); // Refresh the list
+    } catch (err) {
+      console.error("Error updating user:", err);
+      toast.error("Failed to update user");
+    }
+  };
 
   // Define columns for the data table
   const columns: DataTableColumn<User>[] = [
     {
       id: "fullName",
       header: "Full Name",
-      cell: (user) =>
-        `${safeString(user.firstName)} ${safeString(user.lastName)}`,
+      cell: (user) => user.fullName,
       sortable: true,
     },
     {
       id: "email",
       header: "Email",
-      cell: (user) => safeString(user.email) || "N/A",
+      cell: (user) => user.email || "N/A",
       sortable: true,
     },
     {
-      id: "mobile",
-      header: "Mobile",
-      cell: (user) => safeString(user.mobile) || "N/A",
+      id: "mobileNumber",
+      header: "Mobile Number",
+      cell: (user) => user.mobileNumber || "N/A",
       sortable: true,
+    },
+    {
+      id: "userBookCount",
+      header: "User Book Count",
+      cell: (user) => {
+        const userBookCount = user.userBookCount;
+        return (
+          <div className="px-12">
+            {userBookCount ? <p> {userBookCount} </p> : <p>0</p>}
+          </div>
+        );
+      },
     },
     {
       id: "status",
@@ -231,7 +195,7 @@ const UsersList = () => {
     {
       label: "Edit",
       icon: <Edit className="h-4 w-4 mr-2" />,
-      onClick: (user) => navigate(`/users/edit/${user._id}`),
+      onClick: handleEditUser,
     },
     {
       label: (user) => (user.isActive ? "Deactivate" : "Activate"),
@@ -244,12 +208,6 @@ const UsersList = () => {
       onClick: handleToggleStatus,
       variant: "outline",
     },
-    {
-      label: "Delete",
-      icon: <Trash2 className="h-4 w-4 mr-2" />,
-      onClick: handleDeleteUser,
-      variant: "destructive",
-    },
   ];
 
   return (
@@ -257,47 +215,132 @@ const UsersList = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h4 className="text-2xl font-bold text-gray-900 dark:text-white">
             Users
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Manage user accounts in your system
+          </h4>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Manage your users and their permissions
           </p>
         </div>
-
-        <Button
-          className="flex items-center gap-2 self-start"
-          onClick={() => navigate("/users/create")}
-        >
-          <Plus className="h-4 w-4" /> Add User
+        <Button onClick={() => navigate("/users/new")}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add User
         </Button>
       </div>
 
       {/* Search and Filters */}
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="relative flex-grow">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
+      <div className="flex items-center gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
-            type="search"
+            type="text"
             placeholder="Search users..."
-            className="pl-8"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => handleSearch(e.target.value)}
+            className="pl-10"
           />
         </div>
       </div>
 
-      {/* Users Table */}
+      {/* Data Table */}
       <DataTable
         columns={columns}
-        data={filteredUsers}
+        data={users}
         actions={actions}
-        keyField="_id"
         isLoading={isLoading}
-        sortColumn={sortColumn}
-        sortDirection={sortDirection}
-        onSort={handleSort}
+        keyField="_id"
+        pagination={{
+          currentPage,
+          totalPages,
+          onPageChange: handlePageChange,
+        }}
       />
+
+      {/* Status Toggle Confirmation Dialog */}
+      <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {userToToggle?.isActive ? "Deactivate" : "Activate"} User
+            </DialogTitle>
+          </DialogHeader>
+          <p>
+            Are you sure you want to{" "}
+            {userToToggle?.isActive ? "deactivate" : "activate"}{" "}
+            {userToToggle ? userToToggle.fullName : "this user"}?
+          </p>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsStatusDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button onClick={confirmToggleStatus} className="text-white">
+              {userToToggle?.isActive ? "Deactivate" : "Activate"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="fullName" className="text-right">
+                Full Name
+              </Label>
+              <Input
+                id="fullName"
+                name="fullName"
+                value={editFormData.fullName || ""}
+                onChange={handleEditFormChange}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="email" className="text-right">
+                Email
+              </Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={editFormData.email || ""}
+                onChange={handleEditFormChange}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="mobileNumber" className="text-right">
+                Mobile
+              </Label>
+              <Input
+                id="mobileNumber"
+                name="mobileNumber"
+                value={editFormData.mobileNumber || ""}
+                onChange={handleEditFormChange}
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsEditDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleEditSubmit} className="text-white">
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

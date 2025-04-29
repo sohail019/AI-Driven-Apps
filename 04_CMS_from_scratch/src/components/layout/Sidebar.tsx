@@ -6,10 +6,16 @@ import {
   UserCircle,
   ChevronLeft,
   ChevronRight,
+  Users,
+  FileBadge,
+  BarChart3,
+  BookOpen,
+  Music,
 } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { setSidebarState } from "../../store/slices/settingsSlice";
 import { cn } from "../../lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -17,6 +23,7 @@ interface SidebarProps {
 
 const Sidebar = ({ collapsed }: SidebarProps) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
 
   const toggleCollapse = () => {
     dispatch(setSidebarState(!collapsed));
@@ -34,17 +41,17 @@ const Sidebar = ({ collapsed }: SidebarProps) => {
         <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-700">
           {!collapsed && (
             <span className="text-xl font-semibold text-gray-800 dark:text-white">
-              CMS
+              BoiPoka
             </span>
           )}
           <button
-            className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 focus:outline-none"
+            className="rounded-md text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 focus:outline-none"
             onClick={toggleCollapse}
           >
             {collapsed ? (
-              <ChevronRight className="h-5 w-5" />
+              <ChevronRight className="h-4 w-4" />
             ) : (
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-4 w-4" />
             )}
           </button>
         </div>
@@ -55,7 +62,7 @@ const Sidebar = ({ collapsed }: SidebarProps) => {
             <SidebarItem
               to="/dashboard"
               icon={<LayoutDashboard className="h-5 w-5" />}
-              label="Dashboard"
+              label={t("navigation.dashboard")}
               collapsed={collapsed}
             />
             <SidebarItem
@@ -64,6 +71,51 @@ const Sidebar = ({ collapsed }: SidebarProps) => {
               label="Pages"
               collapsed={collapsed}
             />
+
+            <SidebarItem
+              to="/cms/posts"
+              icon={<FileBadge className="h-5 w-5" />}
+              label="Posts"
+              collapsed={collapsed}
+            />
+            <SidebarItem
+              to="/users"
+              icon={<Users className="h-5 w-5" />}
+              label={t("navigation.users")}
+              collapsed={collapsed}
+            />
+            <SidebarItem
+              to="/admins"
+              icon={<Users className="h-5 w-5" />}
+              label="Admins"
+              collapsed={collapsed}
+            />
+            <SidebarItem
+              to="/books"
+              icon={<BookOpen className="h-5 w-5" />}
+              label={t("navigation.books")}
+              collapsed={collapsed}
+            />
+            <SidebarItem
+              to="/charts"
+              icon={<BarChart3 className="h-5 w-5" />}
+              label={t("charts.title")}
+              collapsed={collapsed}
+            />
+            <SidebarItem
+              to="/cms/subscriptions"
+              icon={<BarChart3 className="h-5 w-5" />}
+              label="Subscriptions"
+              collapsed={collapsed}
+            />
+
+            <SidebarItem
+              to="/ai-spotify"
+              icon={<Music className="h-5 w-5" />}
+              label="AI Spotify"
+              collapsed={collapsed}
+            />
+
             <SidebarItem
               to="/profile"
               icon={<UserCircle className="h-5 w-5" />}
@@ -73,7 +125,7 @@ const Sidebar = ({ collapsed }: SidebarProps) => {
             <SidebarItem
               to="/settings"
               icon={<Settings className="h-5 w-5" />}
-              label="Settings"
+              label={t("navigation.settings")}
               collapsed={collapsed}
             />
           </ul>

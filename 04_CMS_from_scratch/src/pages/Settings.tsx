@@ -10,7 +10,7 @@ import { Button } from "../components/ui/button";
 import { Moon, Sun, BellRing, BellOff, Volume2, VolumeX } from "lucide-react";
 import { z } from "zod";
 import { changePasswordSchema } from "../schemas/auth.schema";
-import { userAPI } from "../lib/api";
+import { userAPI } from "../lib/api/users";
 
 type PasswordFormData = z.infer<typeof changePasswordSchema>;
 
@@ -128,20 +128,21 @@ const Settings = () => {
               <Button
                 variant={theme === "light" ? "default" : "outline"}
                 onClick={() => handleThemeChange("light")}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 bg-blue-500 text-white"
               >
                 <Sun className="h-4 w-4" /> Light
               </Button>
               <Button
-                variant={theme === "dark" ? "default" : "outline"}
+                variant={theme === "dark" ? "default" : "outline "}
                 onClick={() => handleThemeChange("dark")}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 bg-blue-500 text-white"
               >
                 <Moon className="h-4 w-4" /> Dark
               </Button>
               <Button
                 variant={theme === "system" ? "default" : "outline"}
                 onClick={() => handleThemeChange("system")}
+                className="flex items-center gap-2 bg-blue-500 text-white"
               >
                 System
               </Button>
@@ -349,7 +350,7 @@ const Settings = () => {
               <div>
                 <Button
                   type="submit"
-                  className="w-full md:w-auto flex justify-center items-center gap-2"
+                  className="w-full md:w-auto flex justify-center items-center gap-2  text-white"
                   disabled={isLoading}
                 >
                   {isLoading ? "Updating..." : "Update Password"}

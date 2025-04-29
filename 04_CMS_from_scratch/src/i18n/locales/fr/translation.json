@@ -1,0 +1,75 @@
+{
+  "app": {
+    "title": "React CMS",
+    "description": "Un CMS headless moderne construit avec React"
+  },
+  "dashboard": {
+    "welcome": "Bienvenue dans le tableau de bord du CMS {{name}}",
+    "createNew": "Créer une nouvelle page",
+    "recentActivity": "Voici ce qui se passe avec votre CMS aujourd'hui."
+  },
+  "auth": {
+    "login": "Connexion",
+    "logout": "Déconnexion",
+    "email": "Email",
+    "password": "Mot de passe",
+    "forgotPassword": "Mot de passe oublié ?",
+    "register": "S'inscrire",
+    "loginSubtitle": "Connectez-vous à votre compte",
+    "selectRole": "Sélectionnez un rôle",
+    "noAccount": "Vous n'avez pas de compte ?",
+    "roles": {
+      "admin": "Administrateur",
+      "superadmin": "Super Administrateur"
+    },
+    "errors": {
+      "invalidCredentials": "Email ou mot de passe invalide"
+    }
+  },
+  "navigation": {
+    "dashboard": "Tableau de bord",
+    "content": "Contenu",
+    "media": "Médias",
+    "users": "Utilisateurs",
+    "settings": "Paramètres",
+    "books": "Livres"
+  },
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "search": "Rechercher",
+    "view": "Voir",
+    "retry": "Réessayer",
+    "loading": "Chargement..."
+  },
+  "languages": {
+    "en": "Anglais",
+    "hi": "Hindi",
+    "ar": "Arabe",
+    "fr": "Français",
+    "de": "Allemand"
+  },
+  "charts": {
+    "title": "Tableau de bord analytique",
+    "line": "Graphique linéaire",
+    "bar": "Graphique à barres",
+    "pie": "Graphique circulaire",
+    "quickOverview": "Aperçu rapide"
+  },
+  "books": {
+    "title": "Gestion des livres",
+    "addNew": "Ajouter un nouveau livre",
+    "searchPlaceholder": "Rechercher des livres par titre, auteur ou ISBN...",
+    "columns": {
+      "cover": "Couverture",
+      "title": "Titre",
+      "authors": "Auteur(s)",
+      "isbn": "ISBN",
+      "publisher": "Éditeur",
+      "publishedDate": "Date de publication"
+    }
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "app": {
+    "title": "React CMS",
+    "description": "Ein modernes Headless CMS gebaut mit React"
+  },
+  "dashboard": {
+    "welcome": "Willkommen zurück, User",
+    "createNew": "Neue Seite erstellen",
+    "recentActivity": "Hier ist, was mit Ihrem CMS heute passiert."
+  },
+  "auth": {
+    "login": "Anmelden",
+    "logout": "Abmelden",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "forgotPassword": "Passwort vergessen?",
+    "register": "Registrieren",
+    "loginSubtitle": "Melden Sie sich bei Ihrem Konto an",
+    "selectRole": "Rolle auswählen",
+    "noAccount": "Kein Konto?",
+    "roles": {
+      "admin": "Administrator",
+      "superadmin": "Super Administrator"
+    },
+    "errors": {
+      "invalidCredentials": "Ungültige E-Mail oder Passwort"
+    }
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "content": "Inhalt",
+    "media": "Medien",
+    "users": "Benutzer",
+    "settings": "Einstellungen",
+    "books": "Bücher"
+  },
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "create": "Erstellen",
+    "search": "Suchen",
+    "view": "Anzeigen",
+    "retry": "Wiederholen",
+    "loading": "Wird geladen..."
+  },
+  "languages": {
+    "en": "Englisch",
+    "hi": "Hindi",
+    "ar": "Arabisch",
+    "fr": "Französisch",
+    "de": "Deutsch"
+  },
+  "charts": {
+    "title": "Analytics-Dashboard",
+    "line": "Liniendiagramm",
+    "bar": "Balkendiagramm",
+    "pie": "Kreisdiagramm",
+    "quickOverview": "Schnellübersicht"
+  },
+  "books": {
+    "title": "Buchverwaltung",
+    "addNew": "Neues Buch hinzufügen",
+    "searchPlaceholder": "Bücher nach Titel, Autor oder ISBN suchen...",
+    "columns": {
+      "cover": "Cover",
+      "title": "Titel",
+      "authors": "Autor(en)",
+      "isbn": "ISBN",
+      "publisher": "Verlag",
+      "publishedDate": "Erscheinungsdatum"
+    }
+  }
+}

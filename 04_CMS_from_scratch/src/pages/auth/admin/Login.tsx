@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Button } from "../../components/ui/button";
-import { useAuth } from "../../hooks/useAuth";
+import { Button } from "../../../components/ui/button";
+import { useAuth } from "../../../hooks/useAuth";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login, isLoading, error } = useAuth();
+  const { login } = useAuth();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -39,11 +39,11 @@ const Login = () => {
         Sign in to your account
       </h2>
 
-      {error && (
+      {/* {error && (
         <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-md mb-4">
           {error}
         </div>
-      )}
+      )} */}
 
       <form onSubmit={handleSubmit}>
         <div className="space-y-4">
@@ -118,10 +118,10 @@ const Login = () => {
           <div>
             <Button
               type="submit"
-              className="w-full flex justify-center py-2 px-4"
-              disabled={isLoading}
+              className="w-full flex justify-center py-2 px-4 text-white"
+              disabled={false}
             >
-              {isLoading ? "Signing in..." : "Sign in"}
+              Sign in
             </Button>
           </div>
         </div>

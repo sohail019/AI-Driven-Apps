@@ -1,0 +1,76 @@
+{
+  "app": {
+    "title": "React CMS",
+    "description": "A modern headless CMS built with React"
+  },
+  "dashboard": {
+    "welcome": "Welcome back, {{name}}",
+    "createNew": "Create New Page",
+    "recentActivity": "Here's what's happening with your CMS today."
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot Password?",
+    "register": "Register",
+    "loginSubtitle": "Sign in to your account",
+    "selectRole": "Select Role",
+    "noAccount": "Don't have an account?",
+    "roles": {
+      "admin": "Admin",
+      "superadmin": "Super Admin"
+    },
+    "errors": {
+      "invalidCredentials": "Invalid email or password"
+    }
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "content": "Content",
+    "media": "Media",
+    "users": "Users",
+    "settings": "Settings",
+    "books": "Books"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "defaultUser": "Sohail",
+    "view": "View",
+    "retry": "Retry",
+    "loading": "Loading..."
+  },
+  "languages": {
+    "en": "English",
+    "hi": "Hindi",
+    "ar": "Arabic",
+    "fr": "French",
+    "de": "German"
+  },
+  "charts": {
+    "title": "Analytics Dashboard",
+    "line": "Line Chart",
+    "bar": "Bar Chart",
+    "pie": "Pie Chart",
+    "quickOverview": "Quick Overview"
+  },
+  "books": {
+    "title": "Books Management",
+    "addNew": "Add New Book",
+    "searchPlaceholder": "Search books by title, author, or ISBN...",
+    "columns": {
+      "cover": "Cover",
+      "title": "Title",
+      "authors": "Author(s)",
+      "isbn": "ISBN",
+      "publisher": "Publisher",
+      "publishedDate": "Published Date"
+    }
+  }
+}

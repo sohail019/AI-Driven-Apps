@@ -1,4 +1,3 @@
-import { User } from "../store/slices/authSlice";
 import { ThemeMode } from "../store/slices/settingsSlice";
 
 // API Response Types
@@ -32,7 +31,6 @@ export interface PageContent extends BaseEntity {
   content: string;
   status: "draft" | "published";
   authorId: string;
-  author?: User;
   metadata?: Record<string, unknown>;
 }
 

@@ -1,0 +1,76 @@
+{
+  "app": {
+    "title": "रिएक्ट सीएमएस",
+    "description": "रिएक्ट के साथ बनाया गया एक आधुनिक हेडलेस सीएमएस"
+  },
+  "dashboard": {
+    "welcome": "हैलो वापस, {{name}}",
+    "createNew": "नया पेज बनाएं",
+    "recentActivity": "आपके सीएमएस के साथ आज क्या हो रहा है।"
+  },
+  "auth": {
+    "login": "लॉगिन",
+    "logout": "लॉग आउट",
+    "email": "ईमेल",
+    "password": "पासवर्ड",
+    "forgotPassword": "पासवर्ड भूल गए?",
+    "register": "रजिस्टर",
+    "loginSubtitle": "अपने खाते में साइन इन करें",
+    "selectRole": "भूमिका चुनें",
+    "noAccount": "खाता नहीं है?",
+    "roles": {
+      "admin": "एडमिन",
+      "superadmin": "सुपर एडमिन"
+    },
+    "errors": {
+      "invalidCredentials": "अमान्य ईमेल या पासवर्ड"
+    }
+  },
+  "navigation": {
+    "dashboard": "डैशबोर्ड",
+    "content": "सामग्री",
+    "media": "मीडिया",
+    "users": "उपयोगकर्ता",
+    "settings": "सेटिंग्स",
+    "books": "पुस्तकें"
+  },
+  "common": {
+    "save": "सहेजें",
+    "cancel": "रद्द करें",
+    "delete": "हटाएं",
+    "edit": "संपादित करें",
+    "create": "बनाएं",
+    "search": "खोज",
+    "defaultUser": "सोहेल",
+    "view": "देखें",
+    "retry": "पुनः प्रयास करें",
+    "loading": "लोड हो रहा है..."
+  },
+  "languages": {
+    "en": "अंग्रेज़ी",
+    "hi": "हिंदी",
+    "ar": "अरबी",
+    "fr": "फ्रेंच",
+    "de": "जर्मन"
+  },
+  "charts": {
+    "title": "एनालिटिक्स डैशबोर्ड",
+    "line": "लाइन चार्ट",
+    "bar": "बार चार्ट",
+    "pie": "पाई चार्ट",
+    "quickOverview": "त्वरित अवलोकन"
+  },
+  "books": {
+    "title": "पुस्तक प्रबंधन",
+    "addNew": "नई पुस्तक जोड़ें",
+    "searchPlaceholder": "शीर्षक, लेखक, या ISBN से पुस्तकें खोजें...",
+    "columns": {
+      "cover": "कवर",
+      "title": "शीर्षक",
+      "authors": "लेखक",
+      "isbn": "ISBN",
+      "publisher": "प्रकाशक",
+      "publishedDate": "प्रकाशन तिथि"
+    }
+  }
+}

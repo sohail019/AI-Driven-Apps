@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../store/store";
-import { updateUser } from "../store/slices/authSlice";
 import { Button } from "../components/ui/button";
 import { User, Pencil, Save, X } from "lucide-react";
 import { profileUpdateSchema } from "../schemas/auth.schema";
-import { userAPI } from "../lib/api";
+import { userAPI } from "../lib/api/users";
 import { z } from "zod";
 
 type ProfileFormData = z.infer<typeof profileUpdateSchema>;
@@ -119,9 +118,9 @@ const Profile = () => {
             {!isEditing ? (
               <Button
                 onClick={() => setIsEditing(true)}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 bg-blue-500 text-white"
               >
-                <Pencil className="h-4 w-4" /> Edit Profile
+                <Pencil className="h-4 w-4 text-white" /> Edit Profile
               </Button>
             ) : (
               <Button

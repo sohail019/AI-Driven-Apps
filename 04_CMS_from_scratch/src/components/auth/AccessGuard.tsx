@@ -2,12 +2,12 @@ import { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store/store";
-import { UserRole } from "../../store/slices/authSlice";
+// import { UserRole } from "../../store/slices/authSlice";
 
 interface AccessGuardProps {
   children: ReactNode;
   requiredAccess?: string;
-  requiredRole?: UserRole;
+  // requiredRole?: UserRole;
   fallback?: string;
 }
 
@@ -21,31 +21,31 @@ interface AccessGuardProps {
  */
 const AccessGuard = ({
   children,
-  requiredAccess,
-  requiredRole,
-  fallback = "/access-denied",
-}: AccessGuardProps) => {
-  const { user } = useSelector((state: RootState) => state.auth);
+}: // requiredAccess,
+// requiredRole,
+// fallback = "/access-denied",
+AccessGuardProps) => {
+  const { userType } = useSelector((state: RootState) => state.auth);
 
   // If no user, we shouldn't be here
-  if (!user) {
+  if (!userType) {
     return <Navigate to="/login" replace />;
   }
 
   // Superadmin can access everything
-  if (user.role === "superadmin") {
+  if (userType === "SuperAdmin") {
     return <>{children}</>;
   }
 
   // Role check: if specific role is required
-  if (requiredRole && user.role !== requiredRole) {
-    return <Navigate to={fallback} replace />;
-  }
+  // if (requiredRole && user.role !== requiredRole) {
+  //   return <Navigate to={fallback} replace />;
+  // }
 
   // Access check: if specific module access is required
-  if (requiredAccess && !user.accessTo.includes(requiredAccess)) {
-    return <Navigate to={fallback} replace />;
-  }
+  // if (requiredAccess && !userType.accessTo.includes(requiredAccess)) {
+  //   return <Navigate to={fallback} replace />;
+  // }
 
   // If no specific access is required, or user has the required access
   return <>{children}</>;

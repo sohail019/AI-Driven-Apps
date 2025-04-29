@@ -1,0 +1,75 @@
+{
+  "app": {
+    "title": "نظام إدارة المحتوى React",
+    "description": "نظام إدارة محتوى حديث بدون واجهة مبني بـ React"
+  },
+  "dashboard": {
+    "welcome": "مرحبا بك في لوحة التحكم الخاصة بك",
+    "createNew": "إنشاء صفحة جديدة",
+    "recentActivity": "هذا ما يحدث مع سيرفر الخاص بك اليوم."
+  },
+  "auth": {
+    "login": "تسجيل الدخول",
+    "logout": "تسجيل الخروج",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "register": "التسجيل",
+    "loginSubtitle": "تسجيل الدخول إلى حسابك",
+    "selectRole": "اختر الدور",
+    "noAccount": "ليس لديك حساب؟",
+    "roles": {
+      "admin": "مدير",
+      "superadmin": "مدير عام"
+    },
+    "errors": {
+      "invalidCredentials": "بريد إلكتروني أو كلمة مرور غير صحيحة"
+    }
+  },
+  "navigation": {
+    "dashboard": "لوحة التحكم",
+    "content": "المحتوى",
+    "media": "الوسائط",
+    "users": "المستخدمون",
+    "settings": "الإعدادات",
+    "books": "الكتب"
+  },
+  "common": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "create": "إنشاء",
+    "search": "بحث",
+    "view": "عرض",
+    "retry": "إعادة المحاولة",
+    "loading": "جاري التحميل..."
+  },
+  "languages": {
+    "en": "الإنجليزية",
+    "hi": "الهندية",
+    "ar": "العربية",
+    "fr": "الفرنسية",
+    "de": "الألمانية"
+  },
+  "charts": {
+    "title": "لوحة تحليلات",
+    "line": "رسم بياني خطي",
+    "bar": "رسم بياني شريطي",
+    "pie": "رسم بياني دائري",
+    "quickOverview": "نظرة سريعة"
+  },
+  "books": {
+    "title": "إدارة الكتب",
+    "addNew": "إضافة كتاب جديد",
+    "searchPlaceholder": "البحث عن الكتب بالعنوان أو المؤلف أو ISBN...",
+    "columns": {
+      "cover": "الغلاف",
+      "title": "العنوان",
+      "authors": "المؤلفون",
+      "isbn": "ISBN",
+      "publisher": "الناشر",
+      "publishedDate": "تاريخ النشر"
+    }
+  }
+}

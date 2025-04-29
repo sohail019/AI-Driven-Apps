@@ -4,6 +4,8 @@ import {
   ChevronDown,
   ChevronUp,
   ChevronsUpDown,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   Table,
@@ -51,6 +53,12 @@ export type DataTableAction<T> = {
         | "link");
 };
 
+export type DataTablePagination = {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+};
+
 export type DataTableProps<T> = {
   columns: DataTableColumn<T>[];
   data: T[];
@@ -62,6 +70,7 @@ export type DataTableProps<T> = {
   sortColumn?: string;
   sortDirection?: "asc" | "desc";
   onSort?: (column: string, direction: "asc" | "desc") => void;
+  pagination?: DataTablePagination;
 };
 
 export function DataTable<T>({
@@ -75,6 +84,7 @@ export function DataTable<T>({
   sortColumn,
   sortDirection,
   onSort,
+  pagination,
 }: DataTableProps<T>) {
   const [selectedRows, setSelectedRows] = React.useState<Set<unknown>>(
     new Set()
@@ -148,92 +158,131 @@ export function DataTable<T>({
   }
 
   return (
-    <div className="w-full overflow-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {selectable && (
-              <TableHead className="w-[40px]">
-                <Checkbox
-                  checked={selectedRows.size === data.length && data.length > 0}
-                  indeterminate={
-                    selectedRows.size > 0 && selectedRows.size < data.length
-                  }
-                  onCheckedChange={handleToggleAll}
-                />
-              </TableHead>
-            )}
-
-            {columns.map((column) => (
-              <TableHead
-                key={column.id}
-                className={column.sortable ? "cursor-pointer" : ""}
-              >
-                <div
-                  className="flex items-center gap-2"
-                  onClick={() => column.sortable && handleSort(column.id)}
-                >
-                  {column.header}
-                  {column.sortable && renderSortIndicator(column.id)}
-                </div>
-              </TableHead>
-            ))}
-
-            {actions && actions.length > 0 && (
-              <TableHead className="w-[60px] text-right">Actions</TableHead>
-            )}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.map((item) => (
-            <TableRow key={String(item[keyField])}>
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
               {selectable && (
-                <TableCell>
+                <TableHead className="w-[40px]">
                   <Checkbox
-                    checked={selectedRows.has(item[keyField])}
-                    onCheckedChange={() => handleToggleRow(item)}
+                    checked={
+                      selectedRows.size === data.length && data.length > 0
+                    }
+                    indeterminate={
+                      selectedRows.size > 0 && selectedRows.size < data.length
+                    }
+                    onCheckedChange={handleToggleAll}
                   />
-                </TableCell>
+                </TableHead>
               )}
 
               {columns.map((column) => (
-                <TableCell key={`${String(item[keyField])}-${column.id}`}>
-                  {column.cell(item)}
-                </TableCell>
+                <TableHead
+                  key={column.id}
+                  className={column.sortable ? "cursor-pointer" : ""}
+                >
+                  <div
+                    className="flex items-center gap-2"
+                    onClick={() => column.sortable && handleSort(column.id)}
+                  >
+                    {column.header}
+                    {column.sortable && renderSortIndicator(column.id)}
+                  </div>
+                </TableHead>
               ))}
 
               {actions && actions.length > 0 && (
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreVertical className="h-4 w-4" />
-                        <span className="sr-only">Open menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {actions.map((action, index) => (
-                        <DropdownMenuItem
-                          key={index}
-                          onClick={() => action.onClick(item)}
-                          className="flex items-center gap-2 cursor-pointer"
-                        >
-                          {typeof action.icon === "function"
-                            ? action.icon(item)
-                            : action.icon}
-                          {typeof action.label === "function"
-                            ? action.label(item)
-                            : action.label}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
+                <TableHead className="w-[60px] text-right">Actions</TableHead>
               )}
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {data.map((item) => (
+              <TableRow key={String(item[keyField])}>
+                {selectable && (
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedRows.has(item[keyField])}
+                      onCheckedChange={() => handleToggleRow(item)}
+                    />
+                  </TableCell>
+                )}
+
+                {columns.map((column) => (
+                  <TableCell key={`${String(item[keyField])}-${column.id}`}>
+                    {column.cell(item)}
+                  </TableCell>
+                ))}
+
+                {actions && actions.length > 0 && (
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreVertical className="h-4 w-4 text-white" />
+                          <span className="sr-only">Open menu</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="end"
+                        className="bg-white dark:bg-gray-800"
+                      >
+                        {actions.map((action, index) => (
+                          <DropdownMenuItem
+                            key={index}
+                            onClick={() => action.onClick(item)}
+                            className="flex items-center gap-2 cursor-pointer"
+                          >
+                            {typeof action.icon === "function"
+                              ? action.icon(item)
+                              : action.icon}
+                            {typeof action.label === "function"
+                              ? action.label(item)
+                              : action.label}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                )}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {pagination && (
+        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                pagination.onPageChange(pagination.currentPage - 1)
+              }
+              disabled={pagination.currentPage === 1}
+              className="text-white"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              Page {pagination.currentPage} of {pagination.totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                pagination.onPageChange(pagination.currentPage + 1)
+              }
+              disabled={pagination.currentPage === pagination.totalPages}
+              className="text-white"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

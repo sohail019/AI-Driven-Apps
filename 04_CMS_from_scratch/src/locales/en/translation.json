@@ -1,0 +1,64 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "previous": "Previous",
+    "next": "Next",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "noResults": "No results found",
+    "error": "Error",
+    "success": "Success"
+  },
+  "users": {
+    "title": "Users",
+    "subtitle": "Manage user accounts in your system",
+    "searchPlaceholder": "Search users...",
+    "fields": {
+      "fullName": "Full Name",
+      "email": "Email",
+      "mobile": "Mobile",
+      "status": "Status",
+      "books": "Books",
+      "createdAt": "Created At"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "actions": {
+      "create": "Add User",
+      "edit": "Edit",
+      "delete": "Delete",
+      "activate": "Activate",
+      "deactivate": "Deactivate"
+    },
+    "confirmDelete": "Are you sure you want to delete {{name}}?",
+    "confirmActivate": "Are you sure you want to activate {{name}}?",
+    "confirmDeactivate": "Are you sure you want to deactivate {{name}}?",
+    "deleteSuccess": "User deleted successfully",
+    "activateSuccess": "User activated successfully",
+    "deactivateSuccess": "User deactivated successfully",
+    "errors": {
+      "fetchFailed": "Failed to load users",
+      "deleteFailed": "Failed to delete user",
+      "activateFailed": "Failed to activate user",
+      "deactivateFailed": "Failed to deactivate user"
+    }
+  },
+  "auth": {
+    "login": "Sign In",
+    "loginSubtitle": "Sign in to your account",
+    "email": "Email Address",
+    "password": "Password",
+    "rememberMe": "Remember me",
+    "forgotPassword": "Forgot your password?",
+    "errors": {
+      "invalidCredentials": "Invalid email or password",
+      "sessionExpired": "Your session has expired. Please sign in again."
+    }
+  }
+}

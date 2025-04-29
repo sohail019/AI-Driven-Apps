@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../../store/store";
@@ -20,18 +19,18 @@ const MainLayout = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="flex h-screen  overflow-hidden bg-gray-100 dark:bg-gray-900">
       {/* Sidebar */}
       <Sidebar collapsed={sidebarCollapsed} />
 
       {/* Main Content */}
-      <div className="flex flex-col flex-1 overflow-hidden">
+      <div className="flex w-0 flex-col flex-1 overflow-hidden">
         {/* Header */}
         <Header onToggleSidebar={handleToggleSidebar} />
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
-          <div className="container mx-auto">
+        <main className="relative flex-1 overflow-y-auto">
+          <div className="mx-2 my-3 mr-2  ml-2 rounded-xl  p-4">
             <Outlet />
           </div>
         </main>
